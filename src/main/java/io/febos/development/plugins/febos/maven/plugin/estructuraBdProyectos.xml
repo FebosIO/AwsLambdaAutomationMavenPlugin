@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proyectos>
+	<proyecto>
+		<nombre>cl_login</nombre>
+                <grupo>cl_login</grupo>
+		<descripcion>cl_login</descripcion>
+		<pais>cl</pais>
+		<version>1.0</version>
+		<actualizacion></actualizacion>
+	</proyecto>
+<proyectos>
