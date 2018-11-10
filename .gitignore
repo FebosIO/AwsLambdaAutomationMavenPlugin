@@ -14,6 +14,7 @@ build/
 nbproject/
 dist/
 manifest.mf
+.settings/
 .project/
 .metadata/
 bin/
