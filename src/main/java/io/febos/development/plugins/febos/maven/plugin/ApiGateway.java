@@ -5,6 +5,8 @@
  */
 package io.febos.development.plugins.febos.maven.plugin;
 
+import org.apache.maven.plugins.annotations.Parameter;
+
 import java.io.File;
 import java.util.LinkedHashMap;
 
@@ -17,6 +19,7 @@ public class ApiGateway {
     private String resource;
     private File mappingFile;
     private File mappingFileResponse;
+    public String headers="";
     private LinkedHashMap<String, String> mapping;
 
     /**
