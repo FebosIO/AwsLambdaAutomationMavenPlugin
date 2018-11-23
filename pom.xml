@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.proxime.development.plugins</groupId>
     <artifactId>proxime-maven-plugin</artifactId>
-    <version>1.</version>
+    <version>1.1</version>
     <packaging>maven-plugin</packaging>
     <name>Proxime maven plugin</name>
     <description>Maven plugin to configure and deploy lambdas on AWS</description>
