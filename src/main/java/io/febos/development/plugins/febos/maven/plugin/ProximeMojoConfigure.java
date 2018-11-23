@@ -351,7 +351,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
             invokeRequest.setFunctionName(lambda.nombre());
             String stageName = lambda.stages != null ? lambda.stages.split(",")[0] : "";
             if (!stageName.isEmpty()) {
-                invokeRequest.setQualifier("develop");
+                invokeRequest.setQualifier(stageName);
             }
             invokeRequest.setPayload("{\"stage\":\"" + stageName + "\",\"warmup\":\"yes\"}");
             InvokeResult invoke = cliente.invoke(invokeRequest);
