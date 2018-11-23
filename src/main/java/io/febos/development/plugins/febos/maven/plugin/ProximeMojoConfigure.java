@@ -8,14 +8,10 @@ package io.febos.development.plugins.febos.maven.plugin;
 
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressListener;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.apigateway.AmazonApiGateway;
 import com.amazonaws.services.apigateway.AmazonApiGatewayClientBuilder;
 import com.amazonaws.services.apigateway.model.*;
 import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.AWSLambdaAsync;
-import com.amazonaws.services.lambda.AWSLambdaAsyncClientBuilder;
 import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import com.amazonaws.services.lambda.model.*;
 import com.amazonaws.services.s3.AmazonS3;
@@ -58,6 +54,9 @@ public class ProximeMojoConfigure extends AbstractMojo {
     @Parameter
     String region;
 
+    @Parameter
+    String stageDescriptor;
+
     CustomCredentialsProvider credenciales;
     public static AmazonS3 s3client;
     public static AWSLambda lambdaClient;
@@ -70,6 +69,16 @@ public class ProximeMojoConfigure extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        try {
+            getLog().info("CONFIGURAMOS ");
+            Gson g = new Gson();
+            getLog().info("REGION  " + region);
+            getLog().info("CUENTA  " + accountId);
+            getLog().info("LAMBDA " + g.toJson(lambda));
+            getLog().info("Endponts " + g.toJson(endpoints));
+        } catch (Exception e) {
+
+        }
         getLog().info("API ");
         if (!update) {
             getLog().info("Upload desactivado");
@@ -149,7 +158,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
 
             if (!functionExists(lambda.nombre())) {
                 lambdaNuevo = true;
-                getLog().info("Creando funcion  lambda");
+                getLog().info("Creando funcion  lambda " + lambda.nombre());
                 try {
                     CreateFunctionRequest nuevoLambda = new CreateFunctionRequest();
                     VpcConfig vpcConfig = null;
@@ -174,7 +183,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
                             .withRuntime("java8")
                             .withCode(new FunctionCode().withS3Bucket(bucket).withS3Key(s3path));
                     try {
-                        getLog().info("Seteando variables de entorno para el lambda");
+                        getLog().info("Seteando variables de entorno para el lambda " + lambda.nombre());
                         nuevoLambda.setEnvironment(new Environment());
                         for (Map.Entry<Object, Object> set : prop.entrySet()) {
                             if (((String) set.getKey()).startsWith("febos")) {
@@ -198,7 +207,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
                     CreateFunctionResult createFunction = lambdaClient.createFunction(nuevoLambda);
                     System.out.println(new Gson().toJson(createFunction));
                     getLog().info("--> [OK]");
-                    String[] ambientes = new String[]{"develop", "testing", "production"};
+                    String[] ambientes = lambda.stages != null ? lambda.stages.split(",") : "".split(",");
                     getLog().info("Creando alias para los distintos ambientes");
                     for (String ambiente : ambientes) {
                         getLog().info("--> Configurando " + ambiente);
@@ -225,7 +234,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
                 }
 
             } else {
-                getLog().info("Actualizando codigo lambda");
+                getLog().info("Actualizando codigo lambda " + lambda.nombre());
                 UpdateFunctionCodeRequest updateLambda = new UpdateFunctionCodeRequest();
                 updateLambda.withFunctionName(lambda.nombre())
                         .withPublish(true)
@@ -299,6 +308,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
                     }
                 }
             }
+            getLog().info("obteniendo alias");
             ListAliasesRequest reqListAlias = new ListAliasesRequest();
             reqListAlias.setFunctionName(lambda.nombre());
             ListAliasesResult listAliases = lambdaClient.listAliases(reqListAlias);
@@ -307,6 +317,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
                     versiones.put(Integer.parseInt(alias.getFunctionVersion().trim()), alias.getName());
                 }
             }
+            getLog().info("max version " + maxVersion);
             final int maxVer = maxVersion;
             versiones.entrySet().stream().forEach((v) -> {
                 if (v.getValue() == null && v.getKey() != maxVer) {
@@ -325,7 +336,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
                     getLog().info("Conservando version " + v.getKey() + " ( " + alias + " )");
                 }
             });
-
+            getLog().info("borrar jar " + deleteJars);
             if (deleteJars) {
                 File[] archivos = new File(lambda.localFile()).getParentFile().listFiles();
                 for (File archivo : archivos) {
@@ -334,13 +345,15 @@ public class ProximeMojoConfigure extends AbstractMojo {
                     }
                 }
             }
-
             getLog().info("Precalentando Lambda...");
             AWSLambda cliente = AWSLambdaClientBuilder.standard().withRegion(region).build();
             InvokeRequest invokeRequest = new InvokeRequest();
             invokeRequest.setFunctionName(lambda.nombre());
-            invokeRequest.setQualifier("develop");
-            invokeRequest.setPayload("{\"stage\":\"develop\",\"warmup\":\"yes\"}");
+            String stageName = lambda.stages != null ? lambda.stages.split(",")[0] : "";
+            if (!stageName.isEmpty()) {
+                invokeRequest.setQualifier(stageName);
+            }
+            invokeRequest.setPayload("{\"stage\":\"" + stageName + "\",\"warmup\":\"yes\"}");
             InvokeResult invoke = cliente.invoke(invokeRequest);
             getLog().info(new String(invoke.getPayload().array()));
 
@@ -358,6 +371,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
                             gateway.mapping(),
                             gateway.getMappingFile(),
                             gateway.getMappingFileResponse(),
+                            gateway.headers,
                             region,
                             accountId
                     );
@@ -411,7 +425,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
         return false;
     }
 
-    public void configurarApiGateway(String apiID, String resourceID, String verbo, String lambdaName, Map<String, String> template, File mappingFile, File mappingFileResponse, String region, String accountId) {
+    public void configurarApiGateway(String apiID, String resourceID, String verbo, String lambdaName, Map<String, String> template, File mappingFile, File mappingFileResponse, String header, String region, String accountId) {
         if (apiID == null || apiID.isEmpty()) {
             return;
         }
@@ -456,8 +470,10 @@ public class ProximeMojoConfigure extends AbstractMojo {
             pmr.setAuthorizationType("NONE");
 
             Map<String, Boolean> parametrosR = new HashMap<>();
-            parametrosR.put("method.request.header.token", false);
-            parametrosR.put("method.request.header.company", false);
+            String[] arrHeaders = header.split(",");
+            for (String head : arrHeaders) {
+                parametrosR.put("method.request.header." + head, false);
+            }
             pmr.setRequestParameters(parametrosR);
 
             //pmr.setRequestModels(emptyModel);
@@ -479,7 +495,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
 
             Map<String, Boolean> parametrosR = new HashMap<>();
             parametrosR.put("method.request.header.token", false);
-            parametrosR.put("method.request.header.company", false);
+            parametrosR.put("method.request.header.empresa", false);
             pmr.setRequestParameters(parametrosR);
 
             //pmr.setRequestModels(emptyModel);
@@ -515,9 +531,10 @@ public class ProximeMojoConfigure extends AbstractMojo {
         pir.setResourceId(resourceID);
         pir.setCredentials("");
         pir.setRestApiId(apiID);
-        pir.setUri("arn:aws:apigateway:" + region + ":lambda:path/2015-03-31/functions/arn:aws:lambda:" + region + ":" + accountId + ":function:" + lambdaName + ":${stageVariables.stage}/invocations");
+        pir.setUri("arn:aws:apigateway:" + region + ":lambda:path/2015-03-31/functions/arn:aws:lambda:" + region + ":" + accountId + ":function:" + lambdaName + ":${stageVariables." + (stageDescriptor != null ? stageDescriptor : "stage") + "}/invocations");
         pir.setRequestTemplates(velocity);
 
+        getLog().info(pir.getUri());
         pir.setContentHandling(ContentHandlingStrategy.CONVERT_TO_TEXT);
         PutIntegrationResult putIntegration = ProximeMojoConfigure.apiClient.putIntegration(pir);
         System.out.print("[OK]\n");
@@ -620,7 +637,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
                 pirr.setRestApiId(apiID);
                 pirr.setStatusCode("200");
                 pirr.setResponseTemplates(velocityR);
-                params.put("method.response.header.Access-Control-Allow-Headers", "'Accept,Content-Type,X-Amz-Date,Authorization,X-Api-Key,token,company'");
+                params.put("method.response.header.Access-Control-Allow-Headers", "'Accept,Content-Type,X-Amz-Date,Authorization,X-Api-Key," + header + "'");
                 params.put("method.response.header.Access-Control-Allow-Origin", "'*'");
                 params.put("method.response.header.Access-Control-Allow-Methods", "'GET,PUT,OPTIONS,POST,DELETE,HEAD'");
                 pirr.setResponseParameters(params);
@@ -638,7 +655,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
             l.put("application/json", "");
             l.put("application/xml", "");
             pirr.setResponseTemplates(l);
-            params.put("method.response.header.Access-Control-Allow-Headers", "'Accept,Content-Type,X-Amz-Date,Authorization,X-Api-Key,token,company'");
+            params.put("method.response.header.Access-Control-Allow-Headers", "'Accept,Content-Type,X-Amz-Date,Authorization,X-Api-Key," + header + "'");
             params.put("method.response.header.Access-Control-Allow-Origin", "'*'");
             params.put("method.response.header.Access-Control-Allow-Methods", "'GET,PUT,OPTIONS,POST,DELETE,HEAD'");
             pirr.setResponseParameters(params);
@@ -657,7 +674,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
         l.put("application/xml", "");
         pirr.setResponseTemplates(l);
         params = new HashMap<>();
-        params.put("method.response.header.Access-Control-Allow-Headers", "'Accept,Content-Type,X-Amz-Date,Authorization,X-Api-Key,token,company'");
+        params.put("method.response.header.Access-Control-Allow-Headers", "'Accept,Content-Type,X-Amz-Date,Authorization,X-Api-Key," + header + "'");
         params.put("method.response.header.Access-Control-Allow-Origin", "'*'");
         params.put("method.response.header.Access-Control-Allow-Methods", "'GET,PUT,OPTIONS,POST,DELETE,HEAD'");
         pirr.setResponseParameters(params);

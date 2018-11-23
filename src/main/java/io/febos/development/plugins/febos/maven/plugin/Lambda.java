@@ -20,6 +20,7 @@ public class Lambda {
     private String descripcion;
     private String role;
     private String vpc;
+    public String stages="";
 
     /**
      * Retora el valor de la propiedad ram.
