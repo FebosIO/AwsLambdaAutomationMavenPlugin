@@ -494,8 +494,12 @@ public class ProximeMojoConfigure extends AbstractMojo {
             pmr.setAuthorizationType("NONE");
 
             Map<String, Boolean> parametrosR = new HashMap<>();
-            parametrosR.put("method.request.header.token", false);
-            parametrosR.put("method.request.header.empresa", false);
+            String[] arrHeaders = header.split(",");
+            for (String head : arrHeaders) {
+                parametrosR.put("method.request.header." + head, false);
+            }
+
+
             pmr.setRequestParameters(parametrosR);
 
             //pmr.setRequestModels(emptyModel);
