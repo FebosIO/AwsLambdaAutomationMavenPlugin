@@ -111,4 +111,11 @@ public class ApiGateway {
         this.mappingFileResponse = mappingFileResponse;
     }
 
+    public String headers() {
+        return headers;
+    }
+
+    public void headers(String headers) {
+        this.headers = headers;
+    }
 }
