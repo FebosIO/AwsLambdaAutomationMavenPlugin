@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package io.febos.development.plugins.febos.maven.plugin;
+package io.febos.maven.plugins.opensource;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;

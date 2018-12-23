@@ -1,13 +1,12 @@
-package io.febos.development.plugins.febos.maven.plugin;
+package io.febos.maven.plugins.opensource;
 
+import io.febos.maven.plugins.opensource.Template;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.junit.Assert.*;
 
 public class TemplateTest {
 

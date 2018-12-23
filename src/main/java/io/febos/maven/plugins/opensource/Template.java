@@ -1,4 +1,4 @@
-package io.febos.development.plugins.febos.maven.plugin;
+package io.febos.maven.plugins.opensource;
 
 import java.io.File;
 import java.io.IOException;

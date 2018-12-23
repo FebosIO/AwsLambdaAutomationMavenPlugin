@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package io.febos.development.plugins.febos.maven.plugin;
+package io.febos.maven.plugins.opensource;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -12,7 +12,6 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -33,13 +32,11 @@ import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Source;
-import javax.xml.transform.Templates;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
+
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -57,7 +54,7 @@ import org.xml.sax.InputSource;
  * @author Michel M. <michel@febos.cl>
  */
 @Mojo(name = "deploy-bugs")
-public class ProximeMojoDeployFindBugs extends AbstractMojo {
+public class FebosMojoDeployFindBugs extends AbstractMojo {
 
     @Parameter(defaultValue = "")
     String proyecto;
@@ -277,7 +274,7 @@ public class ProximeMojoDeployFindBugs extends AbstractMojo {
             is.setCharacterStream(new StringReader(doc));
             return db.parse(is);
         } catch (Exception ex) {
-            Logger.getLogger(ProximeMojoDeployFindBugs.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FebosMojoDeployFindBugs.class.getName()).log(Level.SEVERE, null, ex);
             throw new RuntimeException("Imposible recuperar base de datos de proyectos");
         }
     }
@@ -340,7 +337,7 @@ public class ProximeMojoDeployFindBugs extends AbstractMojo {
             try (DataOutputStream wr = new DataOutputStream(conn.getOutputStream())) {
                 wr.write(postData);
             } catch (IOException ex) {
-                Logger.getLogger(ProximeMojoDeployFindBugs.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(FebosMojoDeployFindBugs.class.getName()).log(Level.SEVERE, null, ex);
             }
 
             String line;
@@ -354,11 +351,11 @@ public class ProximeMojoDeployFindBugs extends AbstractMojo {
         } catch (IllegalArgumentException e) {
             System.out.println("IllegalArgumentException posting to Slack " + e);
         } catch (MalformedURLException ex) {
-            Logger.getLogger(ProximeMojoDeployFindBugs.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FebosMojoDeployFindBugs.class.getName()).log(Level.SEVERE, null, ex);
         } catch (ProtocolException ex) {
-            Logger.getLogger(ProximeMojoDeployFindBugs.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FebosMojoDeployFindBugs.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(ProximeMojoDeployFindBugs.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FebosMojoDeployFindBugs.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -380,7 +377,7 @@ public class ProximeMojoDeployFindBugs extends AbstractMojo {
             }
             return r;
         } catch (IOException ex) {
-            Logger.getLogger(ProximeMojoDeployFindBugs.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FebosMojoDeployFindBugs.class.getName()).log(Level.SEVERE, null, ex);
         }
         return null;
     }

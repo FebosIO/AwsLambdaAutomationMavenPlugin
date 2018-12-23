@@ -4,7 +4,7 @@
  * sin el permiso expreso y por escrito de IA Solutions LTDA.
  * La detección de un uso no autorizado puede acarrear el inicio de acciones legales.
  */
-package io.febos.development.plugins.febos.maven.plugin;
+package io.febos.maven.plugins.opensource;
 
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressListener;
@@ -33,13 +33,12 @@ import java.util.*;
 /**
  * Maven Plugin para facilitar la configuración de API Gateway y Lambda. Permite
  * configurar el lmabda y api dateway desde el POM del proyecto maven.
- *
  * @author Michel M. <michel@febos.cl>
  */
-@Mojo(name = "configure")
-public class ProximeMojoConfigure extends AbstractMojo {
+@Mojo(name = "lambda",requiresProject = true,requiresDirectInvocation = true)
+public class FebosLambdaMojoConfigure extends AbstractMojo {
 
-    @Parameter
+    @Parameter(defaultValue = "true")
     boolean update;
     @Parameter
     boolean deleteJars;
@@ -69,6 +68,8 @@ public class ProximeMojoConfigure extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        apiClient = AmazonApiGatewayClientBuilder.standard().withRegion(region).build();
+        lambdaClient = AWSLambdaClientBuilder.standard().withRegion(region).build();
         try {
             getLog().info("CONFIGURAMOS ");
             Gson g = new Gson();
@@ -357,27 +358,6 @@ public class ProximeMojoConfigure extends AbstractMojo {
             InvokeResult invoke = cliente.invoke(invokeRequest);
             getLog().info(new String(invoke.getPayload().array()));
 
-            if (endpoints != null) {
-                if (lambdaNuevo) {
-                    getLog().info("Configurando API Gateway para el nuevo lambda");
-                } else {
-                    getLog().info("Re-configurando API Gateway para el lambda");
-                }
-                for (ApiGateway gateway : endpoints) {
-                    configurarApiGateway(gateway.api(),
-                            gateway.resource(),
-                            gateway.metodo(),
-                            lambda.nombre(),
-                            gateway.mapping(),
-                            gateway.getMappingFile(),
-                            gateway.getMappingFileResponse(),
-                            gateway.headers,
-                            region,
-                            accountId
-                    );
-                }
-            }
-
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -429,8 +409,8 @@ public class ProximeMojoConfigure extends AbstractMojo {
         if (apiID == null || apiID.isEmpty()) {
             return;
         }
-        ProximeMojoConfigure.apiClient = AmazonApiGatewayClientBuilder.standard().withRegion(region).build();
-        ProximeMojoConfigure.lambdaClient = AWSLambdaClientBuilder.standard().withRegion(region).build();
+        FebosLambdaMojoConfigure.apiClient = AmazonApiGatewayClientBuilder.standard().withRegion(region).build();
+        FebosLambdaMojoConfigure.lambdaClient = AWSLambdaClientBuilder.standard().withRegion(region).build();
 
         Map<String, String> emptyModels = new HashMap<>();
 
@@ -442,7 +422,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
             dmr.setHttpMethod(verbo);
             dmr.setResourceId(resourceID);
             dmr.setRestApiId(apiID);
-            ProximeMojoConfigure.apiClient.deleteMethod(dmr);
+            FebosLambdaMojoConfigure.apiClient.deleteMethod(dmr);
             System.out.print("[OK]\n");
         } catch (Exception e) {
             System.out.print("[No habia configuración previa]\n");
@@ -454,7 +434,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
             dmr.setHttpMethod("OPTIONS");
             dmr.setResourceId(resourceID);
             dmr.setRestApiId(apiID);
-            ProximeMojoConfigure.apiClient.deleteMethod(dmr);
+            FebosLambdaMojoConfigure.apiClient.deleteMethod(dmr);
             System.out.print("[OK]\n");
         } catch (Exception e) {
             System.out.print("[No habia configuración previa]\n");
@@ -477,7 +457,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
             pmr.setRequestParameters(parametrosR);
 
             //pmr.setRequestModels(emptyModel);
-            PutMethodResult putMethod = ProximeMojoConfigure.apiClient.putMethod(pmr);
+            PutMethodResult putMethod = FebosLambdaMojoConfigure.apiClient.putMethod(pmr);
             System.out.print("[OK]\n");
         } catch (Exception e) {
             e.printStackTrace();
@@ -503,7 +483,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
             pmr.setRequestParameters(parametrosR);
 
             //pmr.setRequestModels(emptyModel);
-            PutMethodResult putMethod = ProximeMojoConfigure.apiClient.putMethod(pmr);
+            PutMethodResult putMethod = FebosLambdaMojoConfigure.apiClient.putMethod(pmr);
             System.out.print("[OK]\n");
         } catch (Exception e) {
             e.printStackTrace();
@@ -540,7 +520,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
 
         getLog().info(pir.getUri());
         pir.setContentHandling(ContentHandlingStrategy.CONVERT_TO_TEXT);
-        PutIntegrationResult putIntegration = ProximeMojoConfigure.apiClient.putIntegration(pir);
+        PutIntegrationResult putIntegration = FebosLambdaMojoConfigure.apiClient.putIntegration(pir);
         System.out.print("[OK]\n");
 
         System.out.print("-> Configurando API para interactuar con el FRONT END... ");
@@ -555,7 +535,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
         http200.put("application/json", "{\"statusCode\": 200}");
         http200.put("application/xml", "{\"statusCode\": 200}");
         pir.setRequestTemplates(http200);
-        putIntegration = ProximeMojoConfigure.apiClient.putIntegration(pir);
+        putIntegration = FebosLambdaMojoConfigure.apiClient.putIntegration(pir);
         System.out.print("[OK]\n");
 
         try {
@@ -565,7 +545,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
             dmrr.setStatusCode("200");
             dmrr.setResourceId(resourceID);
             dmrr.setRestApiId(apiID);
-            ProximeMojoConfigure.apiClient.deleteMethodResponse(dmrr);
+            FebosLambdaMojoConfigure.apiClient.deleteMethodResponse(dmrr);
             System.out.print("[OK]\n");
         } catch (Exception e) {
             System.out.print("[No existia el metodo http code 200]\n");
@@ -578,7 +558,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
             dmrr.setStatusCode("200");
             dmrr.setResourceId(resourceID);
             dmrr.setRestApiId(apiID);
-            ProximeMojoConfigure.apiClient.deleteMethodResponse(dmrr);
+            FebosLambdaMojoConfigure.apiClient.deleteMethodResponse(dmrr);
             System.out.print("[OK]\n");
         } catch (Exception e) {
             System.out.print("[No existia el metodo http code 200]\n");
@@ -597,7 +577,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
             h.put("method.response.header.Access-Control-Allow-Origin", true);
             h.put("method.response.header.Access-Control-Allow-Methods", true);
             pmrr.setResponseParameters(h);
-            ProximeMojoConfigure.apiClient.putMethodResponse(pmrr);
+            FebosLambdaMojoConfigure.apiClient.putMethodResponse(pmrr);
             System.out.print("[OK]\n");
         } catch (Exception e) {
             System.out.print("[Ya existia el http code 200]\n");
@@ -618,7 +598,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
             h.put("method.response.header.Access-Control-Allow-Origin", true);
             h.put("method.response.header.Access-Control-Allow-Methods", true);
             pmrr.setResponseParameters(h);
-            ProximeMojoConfigure.apiClient.putMethodResponse(pmrr);
+            FebosLambdaMojoConfigure.apiClient.putMethodResponse(pmrr);
             System.out.print("[OK]\n");
         } catch (Exception e) {
             System.out.print("[Ya existia el http code 200]\n");
@@ -645,7 +625,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
                 params.put("method.response.header.Access-Control-Allow-Origin", "'*'");
                 params.put("method.response.header.Access-Control-Allow-Methods", "'GET,PUT,OPTIONS,POST,DELETE,HEAD'");
                 pirr.setResponseParameters(params);
-                ProximeMojoConfigure.apiClient.putIntegrationResponse(pirr);
+                FebosLambdaMojoConfigure.apiClient.putIntegrationResponse(pirr);
                 System.out.print("[OK]\n");
             } catch (Exception e) {
                 System.out.println("[Ya existia el http code 200]  " + verbo);
@@ -663,7 +643,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
             params.put("method.response.header.Access-Control-Allow-Origin", "'*'");
             params.put("method.response.header.Access-Control-Allow-Methods", "'GET,PUT,OPTIONS,POST,DELETE,HEAD'");
             pirr.setResponseParameters(params);
-            ProximeMojoConfigure.apiClient.putIntegrationResponse(pirr);
+            FebosLambdaMojoConfigure.apiClient.putIntegrationResponse(pirr);
             System.out.print("[OK]\n");
         }
 
@@ -682,7 +662,7 @@ public class ProximeMojoConfigure extends AbstractMojo {
         params.put("method.response.header.Access-Control-Allow-Origin", "'*'");
         params.put("method.response.header.Access-Control-Allow-Methods", "'GET,PUT,OPTIONS,POST,DELETE,HEAD'");
         pirr.setResponseParameters(params);
-        ProximeMojoConfigure.apiClient.putIntegrationResponse(pirr);
+        FebosLambdaMojoConfigure.apiClient.putIntegrationResponse(pirr);
         System.out.print("[OK]\n");
     }
 

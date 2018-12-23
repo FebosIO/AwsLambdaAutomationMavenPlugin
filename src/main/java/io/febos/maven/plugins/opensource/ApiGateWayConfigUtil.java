@@ -4,7 +4,7 @@
  * sin el permiso expreso y por escrito de IA Solutions LTDA. 
  * La detección de un uso no autorizado puede acarrear el inicio de acciones legales.
  */
-package io.febos.development.plugins.febos.maven.plugin;
+package io.febos.maven.plugins.opensource;
 
 import com.amazonaws.services.apigateway.AmazonApiGatewayClientBuilder;
 import com.amazonaws.services.apigateway.model.*;

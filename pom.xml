@@ -2,11 +2,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>io.proxime.development.plugins</groupId>
-    <artifactId>proxime-maven-plugin</artifactId>
-    <version>1.1</version>
+    <groupId>io.febos.development.plugins</groupId>
+    <artifactId>aws-configure-maven-plugin</artifactId>
+    <version>1.3</version>
     <packaging>maven-plugin</packaging>
-    <name>Proxime maven plugin</name>
+    <name>Febos maven plugin</name>
     <description>Maven plugin to configure and deploy lambdas on AWS</description>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -14,18 +14,45 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <dependency.locations.enabled>false</dependency.locations.enabled>
         <febos.config.version>1</febos.config.version>
+        <aws.version>1.11.475</aws.version>
     </properties>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>maven.febos.io</id>
+            <url>s3://maven.febos.io/snapshot</url>
+        </snapshotRepository>
+        <repository>
+            <id>maven.febos.io</id>
+            <url>s3://maven.febos.io/release</url>
+        </repository>
+    </distributionManagement>
+    <repositories>
+        <repository>
+            <id>maven.febos.io</id>
+            <url>s3://maven.febos.io/release</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-api-gateway</artifactId>
-            <version>1.11.166</version>
+            <version>${aws.version}</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-lambda</artifactId>
-            <version>1.11.166</version>
+            <version>${aws.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>${aws.version}</version>
+        </dependency>
+
+
+
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-plugin-api</artifactId>
@@ -55,11 +82,6 @@
             <artifactId>maven-project</artifactId>
             <version>2.2.1</version>
             <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
-            <version>1.11.166</version>
         </dependency>
         <dependency>
             <groupId>commons-logging</groupId>
@@ -92,11 +114,11 @@
             <artifactId>plexus-utils</artifactId>
             <version>3.0.22</version>
         </dependency>
-        <dependency>
+       <!-- <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
             <version>2.4.0</version>
-        </dependency>
+        </dependency>-->
 
         <dependency>
             <groupId>com.google.code.gson</groupId>
@@ -112,13 +134,20 @@
     </dependencies>
 
     <build>
+        <extensions>
+            <extension>
+                <groupId>org.kuali.maven.wagons</groupId>
+                <artifactId>maven-s3-wagon</artifactId>
+                <version>1.2.1</version>
+            </extension>
+        </extensions>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
                 <version>3.3</version>
                 <configuration>
-                    <goalPrefix>febos</goalPrefix>
+                    <goalPrefix>aws-configure</goalPrefix>
                 </configuration>
                 <executions>
                     <execution>
