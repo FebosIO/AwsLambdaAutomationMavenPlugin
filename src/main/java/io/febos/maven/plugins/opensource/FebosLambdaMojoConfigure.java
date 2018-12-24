@@ -23,6 +23,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -55,6 +56,9 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
 
     @Parameter
     String stageDescriptor;
+
+    @Parameter(defaultValue="${project}", readonly=true, required=true)
+    private MavenProject project;
 
     CustomCredentialsProvider credenciales;
     public static AmazonS3 s3client;
@@ -176,7 +180,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
 
                     nuevoLambda
                             .withFunctionName(lambda.nombre())
-                            .withDescription(lambda.descripcion())
+                            .withDescription("[v."+project.getVersion()+"]"+lambda.descripcion())
                             .withPublish(true)
                             .withHandler(lambda.handler())
                             .withMemorySize(lambda.ram())
@@ -261,7 +265,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
 
                 configureLambda
                         .withFunctionName(lambda.nombre())
-                        .withDescription(lambda.descripcion())
+                        .withDescription("[v."+project.getVersion()+"]"+lambda.descripcion())
                         .withHandler(lambda.handler())
                         .withMemorySize(lambda.ram())
                         .withTimeout(lambda.timeout())
