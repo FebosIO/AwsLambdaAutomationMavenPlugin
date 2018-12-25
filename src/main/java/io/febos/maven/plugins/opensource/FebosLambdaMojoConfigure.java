@@ -234,6 +234,13 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                         );
                     }
                     getLog().info("--> [OK]");
+                    getLog().info("--> Creando Alias de versión");
+                    lambdaClient.createAlias(new CreateAliasRequest()
+                            .withFunctionName(lambda.nombre())
+                            .withName("v"+project.getVersion())
+                            .withFunctionVersion("$LATEST")
+                    );
+                    getLog().info("--> [OK]");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -318,6 +325,11 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
             reqListAlias.setFunctionName(lambda.nombre());
             ListAliasesResult listAliases = lambdaClient.listAliases(reqListAlias);
             for (AliasConfiguration alias : listAliases.getAliases()) {
+                if(alias.getName().equalsIgnoreCase("v"+project.getVersion())){
+                    getLog().info(" ** Ya existia un alias para esta versión del lambda, se reemplaza alias por nueva versión");
+                    DeleteAliasRequest eliminarAliasReq=new DeleteAliasRequest().withFunctionName(lambda.nombre()).withName("v"+project.getVersion());
+                    lambdaClient.deleteAlias(eliminarAliasReq);
+                }
                 if (!alias.getFunctionVersion().equals("$LATEST")) {
                     versiones.put(Integer.parseInt(alias.getFunctionVersion().trim()), alias.getName());
                 }
@@ -339,6 +351,14 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                 } else {
                     String alias = v.getValue() == null ? "ultima version" : "alias " + v.getValue();
                     getLog().info("Conservando version " + v.getKey() + " ( " + alias + " )");
+
+                    lambdaClient.createAlias(new CreateAliasRequest()
+                            .withFunctionName(lambda.nombre())
+                            .withName("v"+project.getVersion())
+                            .withFunctionVersion(Integer.toString(maxVer))
+                    );
+
+
                 }
             });
             getLog().info("borrar jar " + deleteJars);
