@@ -74,6 +74,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
     public void execute() throws MojoExecutionException, MojoFailureException {
         apiClient = AmazonApiGatewayClientBuilder.standard().withRegion(region).build();
         lambdaClient = AWSLambdaClientBuilder.standard().withRegion(region).build();
+        Map<Integer, List<String>> aliases=new HashMap<>();
         try {
             getLog().info("CONFIGURAMOS ");
             Gson g = new Gson();
@@ -370,6 +371,10 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                     }
                 }
             }
+
+            //TODO: save info to Dynamo lambdas, versions and alias
+
+
             getLog().info("Precalentando Lambda...");
             AWSLambda cliente = AWSLambdaClientBuilder.standard().withRegion(region).build();
             InvokeRequest invokeRequest = new InvokeRequest();

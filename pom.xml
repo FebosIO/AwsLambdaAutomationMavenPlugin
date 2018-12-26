@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.febos.development.plugins</groupId>
     <artifactId>aws-configure-maven-plugin</artifactId>
-    <version>1.5</version>
+    <version>1.6</version>
     <packaging>maven-plugin</packaging>
     <name>Febos maven plugin</name>
     <description>Maven plugin to configure and deploy lambdas on AWS</description>
@@ -50,7 +50,11 @@
             <artifactId>aws-java-sdk-s3</artifactId>
             <version>${aws.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-dynamodb</artifactId>
+            <version>${aws.version}</version>
+        </dependency>
 
 
         <dependency>
@@ -131,6 +135,7 @@
             <version>4.12</version>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>
