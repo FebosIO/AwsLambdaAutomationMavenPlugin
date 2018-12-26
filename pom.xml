@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.febos.development.plugins</groupId>
     <artifactId>aws-configure-maven-plugin</artifactId>
-    <version>1.7</version>
+    <version>1.8</version>
     <packaging>maven-plugin</packaging>
     <name>Febos maven plugin</name>
     <description>Maven plugin to configure and deploy lambdas on AWS</description>

@@ -238,7 +238,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                     getLog().info("--> Creando Alias de versión");
                     lambdaClient.createAlias(new CreateAliasRequest()
                             .withFunctionName(lambda.nombre())
-                            .withName("v"+project.getVersion())
+                            .withName("v"+project.getVersion().replaceAll("\\.","_"))
                             .withFunctionVersion("$LATEST")
                     );
                     getLog().info("--> [OK]");
@@ -326,9 +326,9 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
             reqListAlias.setFunctionName(lambda.nombre());
             ListAliasesResult listAliases = lambdaClient.listAliases(reqListAlias);
             for (AliasConfiguration alias : listAliases.getAliases()) {
-                if(alias.getName().equalsIgnoreCase("v"+project.getVersion())){
+                if(alias.getName().equalsIgnoreCase("v"+project.getVersion().replaceAll("\\.","_"))){
                     getLog().info(" ** Ya existia un alias para esta versión del lambda, se reemplaza alias por nueva versión");
-                    DeleteAliasRequest eliminarAliasReq=new DeleteAliasRequest().withFunctionName(lambda.nombre()).withName("v"+project.getVersion());
+                    DeleteAliasRequest eliminarAliasReq=new DeleteAliasRequest().withFunctionName(lambda.nombre()).withName("v"+project.getVersion().replaceAll("\\.","_"));
                     lambdaClient.deleteAlias(eliminarAliasReq);
                 }
                 if (!alias.getFunctionVersion().equals("$LATEST")) {
@@ -355,7 +355,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
 
                     lambdaClient.createAlias(new CreateAliasRequest()
                             .withFunctionName(lambda.nombre())
-                            .withName("v"+project.getVersion())
+                            .withName("v"+project.getVersion().replaceAll("\\.","_"))
                             .withFunctionVersion(Integer.toString(maxVer))
                     );
 
