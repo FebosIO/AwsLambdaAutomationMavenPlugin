@@ -284,7 +284,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                     configureLambda.setEnvironment(new Environment());
 
                     for (Map.Entry<Object, Object> set : prop.entrySet()) {
-                        if (((String) set.getKey()).startsWith("proxime")) {
+                        if (((String) set.getKey()).startsWith("febos")) {
                             String key = (String) set.getKey();
                             key = key.replaceAll("\\.", "_");
                             String value = (String) set.getValue();
@@ -329,7 +329,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                 if(alias.getName().equalsIgnoreCase("v"+project.getVersion().replaceAll("\\.","_"))){
                     getLog().info(" ** Ya existia un alias para esta versión del lambda, se reemplaza alias por nueva versión");
                     DeleteAliasRequest eliminarAliasReq=new DeleteAliasRequest().withFunctionName(lambda.nombre()).withName("v"+project.getVersion().replaceAll("\\.","_"));
-                    lambdaClient.deleteAlias(eliminarAliasReq);
+                    DeleteAliasResult deleteAliasResult = lambdaClient.deleteAlias(eliminarAliasReq);
                 }
                 if (!alias.getFunctionVersion().equals("$LATEST")) {
                     versiones.put(Integer.parseInt(alias.getFunctionVersion().trim()), alias.getName());
@@ -353,15 +353,16 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                     String alias = v.getValue() == null ? "ultima version" : "alias " + v.getValue();
                     getLog().info("Conservando version " + v.getKey() + " ( " + alias + " )");
 
-                    lambdaClient.createAlias(new CreateAliasRequest()
-                            .withFunctionName(lambda.nombre())
-                            .withName("v"+project.getVersion().replaceAll("\\.","_"))
-                            .withFunctionVersion(Integer.toString(maxVer))
-                    );
-
-
                 }
             });
+            if(!lambdaNuevo){
+                lambdaClient.createAlias(new CreateAliasRequest()
+                        .withFunctionName(lambda.nombre())
+                        .withName("v"+project.getVersion().replaceAll("\\.","_"))
+                        .withFunctionVersion(Integer.toString(maxVer))
+                );
+            }
+
             getLog().info("borrar jar " + deleteJars);
             if (deleteJars) {
                 File[] archivos = new File(lambda.localFile()).getParentFile().listFiles();
