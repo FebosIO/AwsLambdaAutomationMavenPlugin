@@ -338,7 +338,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
             getLog().info("max version " + maxVersion);
             final int maxVer = maxVersion;
             versiones.entrySet().stream().forEach((v) -> {
-                if (v.getValue() == null && v.getKey() != maxVer) {
+                if ((v.getValue() == null || !v.getValue().matches(lambda.stages.replaceAll(",","|"))) && v.getKey() != maxVer) {
                     try {
                         DeleteFunctionRequest delReq = new DeleteFunctionRequest();
                         delReq.setFunctionName(lambda.nombre());
