@@ -181,7 +181,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
 
                     nuevoLambda
                             .withFunctionName(lambda.nombre())
-                            .withDescription("[v."+project.getVersion()+"]"+lambda.descripcion())
+                            .withDescription("[v"+project.getVersion()+"] "+lambda.descripcion())
                             .withPublish(true)
                             .withHandler(lambda.handler())
                             .withMemorySize(lambda.ram())
@@ -273,7 +273,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
 
                 configureLambda
                         .withFunctionName(lambda.nombre())
-                        .withDescription("[v."+project.getVersion()+"]"+lambda.descripcion())
+                        .withDescription("[v"+project.getVersion()+"] "+lambda.descripcion())
                         .withHandler(lambda.handler())
                         .withMemorySize(lambda.ram())
                         .withTimeout(lambda.timeout())
