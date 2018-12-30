@@ -375,19 +375,29 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
 
             //TODO: save info to Dynamo lambdas, versions and alias
 
+            if(lambda.warmerHandler!=null && !lambda.warmerHandler.isEmpty()) {
 
-            getLog().info("Precalentando Lambda...");
-            AWSLambda cliente = AWSLambdaClientBuilder.standard().withRegion(region).build();
-            InvokeRequest invokeRequest = new InvokeRequest();
-            invokeRequest.setFunctionName(lambda.nombre());
-            String stageName = lambda.stages != null ? lambda.stages.split(",")[0] : "";
-            if (!stageName.isEmpty()) {
-                invokeRequest.setQualifier(stageName);
+                getLog().info("Precalentando Lambda...");
+                AWSLambda cliente = AWSLambdaClientBuilder.standard().withRegion(region).build();
+                InvokeRequest invokeRequest = new InvokeRequest();
+                invokeRequest.setFunctionName(lambda.nombre());
+                String stageName = lambda.stages != null ? lambda.stages.split(",")[0] : "";
+                if (!stageName.isEmpty()) {
+                    invokeRequest.setQualifier(stageName);
+                }
+
+                HashMap<String, String> request = new HashMap<>();
+                request.put("functionClass",lambda.warmerHandler);
+                request.put("requestClass",lambda.warmerRequest);
+                request.put("responseClass",lambda.warmerResponse);
+                request.put("stage",stageName);
+
+                String payload = new Gson().toJson(request);
+
+                invokeRequest.setPayload(payload);
+                InvokeResult invoke = cliente.invoke(invokeRequest);
+                getLog().info(new String(invoke.getPayload().array()));
             }
-            invokeRequest.setPayload("{\"stage\":\"" + stageName + "\",\"warmup\":\"yes\"}");
-            InvokeResult invoke = cliente.invoke(invokeRequest);
-            getLog().info(new String(invoke.getPayload().array()));
-
 
         } catch (Exception e) {
             e.printStackTrace();

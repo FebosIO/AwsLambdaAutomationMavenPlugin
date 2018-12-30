@@ -21,6 +21,9 @@ public class Lambda {
     private String role;
     private String vpc;
     public String stages="";
+    public String warmerHandler;
+    public String warmerRequest;
+    public String warmerResponse;
 
     /**
      * Retora el valor de la propiedad ram.
