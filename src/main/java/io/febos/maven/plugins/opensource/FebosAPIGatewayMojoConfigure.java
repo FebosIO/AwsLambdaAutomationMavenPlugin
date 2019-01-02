@@ -87,6 +87,7 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
 
         } catch (Exception e) {
             e.printStackTrace();
+            throw new RuntimeException("Error al ejecutar plugin");
         }
 
     }

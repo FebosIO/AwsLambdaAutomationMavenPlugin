@@ -244,6 +244,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                     getLog().info("--> [OK]");
                 } catch (Exception e) {
                     e.printStackTrace();
+                    throw new RuntimeException("Error al ejecutar plugin");
                 }
 
             } else {
@@ -347,7 +348,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                         lambdaClient.deleteFunction(delReq);
 
                     } catch (Exception e) {
-
+                        throw new RuntimeException("Error al ejecutar plugin");
                     }
                 } else {
                     String alias = v.getValue() == null ? "ultima version" : "alias " + v.getValue();
@@ -400,7 +401,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException("Error al ejecutar plugin");
         }
 
     }
