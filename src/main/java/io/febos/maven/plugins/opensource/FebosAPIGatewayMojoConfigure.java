@@ -118,19 +118,6 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
         }
     }
 
-    public boolean functionExists(String name) {
-        try {
-            GetFunctionRequest gfr = new GetFunctionRequest();
-            gfr.setFunctionName(name);
-            GetFunctionResult function = lambdaClient.getFunction(gfr);
-            if (function != null) {
-                return true;
-            }
-        } catch (Exception e) {
-            return false;
-        }
-        return false;
-    }
 
     public void configurarApiGateway(String apiID, String resourceID, String verbo, String lambdaName, Map<String, String> template, File mappingFile, File mappingFileResponse, String header, String region, String accountId) {
         if (apiID == null || apiID.isEmpty()) {
