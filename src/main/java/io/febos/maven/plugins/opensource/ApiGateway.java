@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
  */
 public class ApiGateway {
     private String api;
+    private String contentTypes;
     private String metodo;
     private String resource;
     private File mappingFile;
@@ -117,5 +118,13 @@ public class ApiGateway {
 
     public void headers(String headers) {
         this.headers = headers;
+    }
+
+    public String contentTypes() {
+        return contentTypes;
+    }
+
+    public void contentTypes(String contentTypes) {
+        this.contentTypes = contentTypes;
     }
 }

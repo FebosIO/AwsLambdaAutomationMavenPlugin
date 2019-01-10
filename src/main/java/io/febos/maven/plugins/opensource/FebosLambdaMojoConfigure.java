@@ -328,9 +328,13 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
             ListAliasesResult listAliases = lambdaClient.listAliases(reqListAlias);
             for (AliasConfiguration alias : listAliases.getAliases()) {
                 if(alias.getName().equalsIgnoreCase("v"+project.getVersion().replaceAll("\\.","_"))){
-                    getLog().info(" ** Ya existia un alias para esta versión del lambda, se reemplaza alias por nueva versión");
-                    DeleteAliasRequest eliminarAliasReq=new DeleteAliasRequest().withFunctionName(lambda.nombre()).withName("v"+project.getVersion().replaceAll("\\.","_"));
-                    DeleteAliasResult deleteAliasResult = lambdaClient.deleteAlias(eliminarAliasReq);
+                    try {
+                        getLog().info(" ** Ya existia un alias para esta versión del lambda, se reemplaza alias por nueva versión");
+                        DeleteAliasRequest eliminarAliasReq = new DeleteAliasRequest().withFunctionName(lambda.nombre()).withName("v" + project.getVersion().replaceAll("\\.", "_"));
+                        DeleteAliasResult deleteAliasResult = lambdaClient.deleteAlias(eliminarAliasReq);
+                    }catch(Exception e){
+                        //NO SE PUDO BORRAR LA VERSION
+                    }
                 }
                 if (!alias.getFunctionVersion().equals("$LATEST")) {
                     versiones.put(Integer.parseInt(alias.getFunctionVersion().trim()), alias.getName());

@@ -70,6 +70,7 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
                     getLog().info("Re-configurando API Gateway para el lambda");
                 }
                 for (ApiGateway gateway : endpoints) {
+                    String[] contentTypes=gateway.contentTypes()==null||gateway.contentTypes().isEmpty()?new String[]{"application/json"}:gateway.contentTypes().split(",");
                     configurarApiGateway(gateway.api(),
                             gateway.resource(),
                             gateway.metodo(),
@@ -79,7 +80,8 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
                             gateway.getMappingFileResponse(),
                             gateway.headers,
                             region,
-                            accountId
+                            accountId,
+                            contentTypes
                     );
                 }
             }
@@ -92,7 +94,7 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
 
     }
 
-    protected void cargarResponseTemplate(String apiID, String resourceID, String verbo, File mappingFileResponse) {
+    protected void cargarResponseTemplate(String apiID, String resourceID, String verbo, File mappingFileResponse,String[] contentTypes) {
         try {
             System.out.print("-> Configurando API para configurar respuestas");
 
@@ -108,7 +110,9 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
             pire.setStatusCode("200");
             Map<String, String> velocityR = new HashMap<>();
             Template templateR = new Template(mappingFileResponse).invoke();
-            velocityR.put("application/json", templateR.getTmplJson());
+            for (String contentType : contentTypes) {
+                velocityR.put(contentType, templateR.getTmplJson());
+            }
             pire.setResponseTemplates(velocityR);
             System.out.println(templateR.getTmplJson());
             apiClient.putIntegrationResponse(pire);
@@ -119,15 +123,17 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
     }
 
 
-    public void configurarApiGateway(String apiID, String resourceID, String verbo, String lambdaName, Map<String, String> template, File mappingFile, File mappingFileResponse, String header, String region, String accountId) {
+    public void configurarApiGateway(String apiID, String resourceID, String verbo, String lambdaName, Map<String, String> template, File mappingFile, File mappingFileResponse, String header, String region, String accountId,String[] contentTypes) {
         if (apiID == null || apiID.isEmpty()) {
             return;
         }
 
         Map<String, String> emptyModels = new HashMap<>();
 
-        emptyModels.put("application/json", "Empty");
-        emptyModels.put("application/xml", "Empty");
+        for (String contentType : contentTypes) {
+            emptyModels.put(contentType, "Empty");
+        }
+
         try {
             System.out.print("-> Eliminando configuración actual...");
             DeleteMethodRequest dmr = new DeleteMethodRequest();
@@ -215,8 +221,13 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
         tmplJson = template1.getTmplJson();
         tmplXml = template1.getTmplXml();
 
-        velocity.put("application/json", tmplJson);
-        velocity.put("application/xml", tmplXml);
+        for (String contentType : contentTypes) {
+            if(contentType.equals("application/xml")){
+                velocity.put("application/xml", tmplXml);
+            }else {
+                velocity.put(contentType, tmplJson);
+            }
+        }
 
         System.out.print("-> Configurando API para interactuar con el lambda... ");
         PutIntegrationRequest pir = new PutIntegrationRequest();
@@ -244,8 +255,12 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
         pir.setPassthroughBehavior("WHEN_NO_TEMPLATES");
         pir.setRestApiId(apiID);
         Map<String, String> http200 = new HashMap<>();
-        http200.put("application/json", "{\"statusCode\": 200}");
-        http200.put("application/xml", "{\"statusCode\": 200}");
+        //http200.put("application/json", "{\"statusCode\": 200}");
+        //http200.put("application/xml", "{\"statusCode\": 200}");
+        for (String contentType : contentTypes) {
+            http200.put(contentType, "{\"statusCode\": 200}");
+        }
+
         pir.setRequestTemplates(http200);
         putIntegration = FebosAPIGatewayMojoConfigure.apiClient.putIntegration(pir);
         System.out.print("[OK]\n");
@@ -323,8 +338,18 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
         if (mappingFileResponse != null && mappingFileResponse.exists()) {
             Template templateR = new Template(mappingFileResponse).invoke();
             Map<String, String> velocityR = new HashMap<>();
-            velocityR.put("application/json", templateR.getTmplJson());
-            velocityR.put("application/xml", "Empty");
+
+            //velocityR.put("application/json", templateR.getTmplJson());
+            //velocityR.put("application/xml", "Empty");
+
+            for (String contentType : contentTypes) {
+                if(contentType.equals("application/xml")){
+                    velocityR.put("application/xml", tmplXml);
+                }else {
+                    velocityR.put(contentType, templateR.getTmplJson());
+                }
+            }
+
 
             try {
                 System.out.print("-> Creando integracion con mapping para CORS... DESDE ARCHIVO");
@@ -348,8 +373,13 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
             pirr.setResourceId(resourceID);
             pirr.setRestApiId(apiID);
             pirr.setStatusCode("200");
-            l.put("application/json", "");
-            l.put("application/xml", "");
+            //l.put("application/json", "");
+            //l.put("application/xml", "");
+
+            for (String contentType : contentTypes) {
+                l.put(contentType, "");
+            }
+
             pirr.setResponseTemplates(l);
             params.put("method.response.header.Access-Control-Allow-Headers", "'Accept,Content-Type,X-Amz-Date,Authorization,X-Api-Key," + header + "'");
             params.put("method.response.header.Access-Control-Allow-Origin", "'*'");
@@ -366,8 +396,11 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
         pirr.setRestApiId(apiID);
         pirr.setStatusCode("200");
         l = new HashMap<>();
-        l.put("application/json", "");
-        l.put("application/xml", "");
+        //l.put("application/json", "");
+        //l.put("application/xml", "");
+        for (String contentType : contentTypes) {
+            l.put(contentType, "");
+        }
         pirr.setResponseTemplates(l);
         params = new HashMap<>();
         params.put("method.response.header.Access-Control-Allow-Headers", "'Accept,Content-Type,X-Amz-Date,Authorization,X-Api-Key," + header + "'");
