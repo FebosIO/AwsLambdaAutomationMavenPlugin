@@ -17,6 +17,7 @@ public class ApiGateway {
     private String api;
     private String contentTypes;
     private String metodo;
+    private String resourceUrl;
     private String resource;
     private File mappingFile;
     private File mappingFileResponse;
@@ -126,5 +127,13 @@ public class ApiGateway {
 
     public void contentTypes(String contentTypes) {
         this.contentTypes = contentTypes;
+    }
+
+    public String resourceUrl() {
+        return resourceUrl;
+    }
+
+    public void resourceUrl(String resourceUrl) {
+        this.resourceUrl = resourceUrl;
     }
 }

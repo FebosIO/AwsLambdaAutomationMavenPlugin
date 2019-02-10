@@ -1,7 +1,11 @@
 package io.febos.maven.plugins.opensource;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -12,6 +16,7 @@ public class Template {
     private String tmplJson;
     private String tmplXml;
     private File templateFile;
+    public String handler;
 
     public Template(Map<String, String> template, String tmplJson, String tmplXml) {
         this.template = template;
@@ -50,14 +55,18 @@ public class Template {
     }
 
     private Template getTemplateFromFile() {
+        String jsonTemplate="";
         try {
             Logger.getGlobal().info("CARGAMOS TEMPLATE DESDE ARCHIVO");
-            String jsonTemplate = new String(Files.readAllBytes(Paths.get(templateFile.getAbsolutePath())));
+            jsonTemplate = new String(Files.readAllBytes(Paths.get(templateFile.getAbsolutePath())));
             tmplJson = jsonTemplate;
             tmplXml = jsonTemplate;
         } catch (IOException e) {
             e.printStackTrace();
         }
+        Type type = new TypeToken<Map<String, String>>(){}.getType();
+        Map<String, String> mapa = new Gson().fromJson(jsonTemplate, type);
+        this.handler=mapa.get("functionClass");
         return this;
     }
 
@@ -86,6 +95,7 @@ public class Template {
             }
             item++;
         }
+        this.handler=template.get("functionClass");
         return this;
     }
 }

@@ -11,7 +11,6 @@ import com.amazonaws.services.apigateway.AmazonApiGatewayClientBuilder;
 import com.amazonaws.services.apigateway.model.*;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
-import com.amazonaws.services.lambda.model.*;
 import com.amazonaws.services.s3.AmazonS3;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -31,35 +30,42 @@ import java.util.*;
 public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
 
     @Parameter
-    boolean update;
+    public boolean update;
     @Parameter
-    boolean deleteJars;
+    public boolean deleteJars;
     @Parameter(defaultValue = "")
-    String credencialesAWS;
+    public String credencialesAWS;
     @Parameter
-    List<ApiGateway> endpoints;
+    public List<ApiGateway> endpoints;
     @Parameter
-    Lambda lambda;
+    public Lambda lambda;
     @Parameter
-    String accountId;
+    public String accountId;
     @Parameter
-    String region;
+    public String region;
+
+    @Parameter(name = "deployFilter",property = "deployFilter")
+    public String deployFilter;
 
     @Parameter
-    String stageDescriptor;
+    public String stageDescriptor;
 
-    CustomCredentialsProvider credenciales;
+    public CustomCredentialsProvider credenciales;
     public static AmazonS3 s3client;
     public static AWSLambda lambdaClient;
     public static AmazonApiGateway apiClient;
-    HashMap<String, Boolean> recursos;
-    HashMap<String, String> recursosId;
-    HashMap<String, ArrayList<Method>> recursoMetodos;
-    boolean lambdaNuevo;
+    public HashMap<String, Boolean> recursos;
+    public HashMap<String, String> recursosId;
+    public HashMap<String, ArrayList<Method>> recursoMetodos;
+    public boolean lambdaNuevo;
 
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        if(this.deployFilter ==null){
+            this.deployFilter ="";
+        }
+
         apiClient = AmazonApiGatewayClientBuilder.standard().withRegion(region).build();
         lambdaClient = AWSLambdaClientBuilder.standard().withRegion(region).build();
         try{
@@ -71,6 +77,7 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
                 }
                 for (ApiGateway gateway : endpoints) {
                     String[] contentTypes=gateway.contentTypes()==null||gateway.contentTypes().isEmpty()?new String[]{"application/json"}:gateway.contentTypes().split(",");
+
                     configurarApiGateway(gateway.api(),
                             gateway.resource(),
                             gateway.metodo(),
@@ -126,6 +133,20 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
     public void configurarApiGateway(String apiID, String resourceID, String verbo, String lambdaName, Map<String, String> template, File mappingFile, File mappingFileResponse, String header, String region, String accountId,String[] contentTypes) {
         if (apiID == null || apiID.isEmpty()) {
             return;
+        }
+
+        Template template1 = null;
+        if (mappingFile != null) {
+            template1 = new Template(mappingFile).invoke();
+        } else {
+            template1 = new Template(template).invoke();
+
+        }
+        if(!template1.handler.startsWith(this.deployFilter)){
+            return;
+        }
+        if(!this.deployFilter.isEmpty()){
+            System.out.println("Deployando API con el filtro: "+this.deployFilter);
         }
 
         Map<String, String> emptyModels = new HashMap<>();
@@ -211,13 +232,7 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
         Map<String, String> velocity = new HashMap<>();
         String tmplJson = "{\n";
         String tmplXml = "{\n";
-        Template template1 = null;
-        if (mappingFile != null) {
-            template1 = new Template(mappingFile).invoke();
-        } else {
-            template1 = new Template(template).invoke();
 
-        }
         tmplJson = template1.getTmplJson();
         tmplXml = template1.getTmplXml();
 
