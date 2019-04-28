@@ -186,6 +186,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                             .withHandler(lambda.handler())
                             .withMemorySize(lambda.ram())
                             .withTimeout(lambda.timeout())
+                            .withLayers(lambda.layers)
                             .withRuntime("java8")
                             .withCode(new FunctionCode().withS3Bucket(bucket).withS3Key(s3path));
                     try {
@@ -277,6 +278,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                         .withDescription("[v"+project.getVersion()+"] "+lambda.descripcion())
                         .withHandler(lambda.handler())
                         .withMemorySize(lambda.ram())
+                        .withLayers(lambda.layers)
                         .withTimeout(lambda.timeout())
                         .withRuntime("java8");
 

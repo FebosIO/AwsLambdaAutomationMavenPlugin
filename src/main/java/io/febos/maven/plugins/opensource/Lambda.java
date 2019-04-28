@@ -24,6 +24,7 @@ public class Lambda {
     public String warmerHandler;
     public String warmerRequest;
     public String warmerResponse;
+    public String[] layers;
 
     /**
      * Retora el valor de la propiedad ram.
