@@ -73,7 +73,7 @@ public class FebosLayerMojoConfigure extends AbstractMojo {
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         lambdaClient = AWSLambdaClientBuilder.standard().withRegion(region).build();
-
+        s3client=AmazonS3ClientBuilder.standard().withRegion(region).build();
         subirArchivoEnS3(layer.localFile,layer.s3File);
         getLog().info("Configurando Layer");
         PublishLayerVersionRequest lv=new PublishLayerVersionRequest();
