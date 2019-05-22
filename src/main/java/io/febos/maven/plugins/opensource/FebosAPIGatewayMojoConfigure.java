@@ -12,6 +12,7 @@ import com.amazonaws.services.apigateway.model.*;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
+import com.google.gson.Gson;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -19,6 +20,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
+import java.security.InvalidParameterException;
 import java.util.*;
 
 /**
@@ -43,13 +45,10 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
     public String accountId;
     @Parameter
     public String region;
-
     @Parameter(name = "deployFilter",property = "deployFilter")
     public String deployFilter;
-
     @Parameter
     public String stageDescriptor;
-
     public CustomCredentialsProvider credenciales;
     public static AmazonS3 s3client;
     public static AWSLambda lambdaClient;
@@ -59,13 +58,14 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
     public HashMap<String, ArrayList<Method>> recursoMetodos;
     public boolean lambdaNuevo;
 
-
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if(this.deployFilter ==null){
             this.deployFilter ="";
         }
-
+        if(endpoints!= null){
+            validarEndpointsRepetidos();
+        }
         apiClient = AmazonApiGatewayClientBuilder.standard().withRegion(region).build();
         lambdaClient = AWSLambdaClientBuilder.standard().withRegion(region).build();
         try{
@@ -99,6 +99,22 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
             throw new RuntimeException("Error al ejecutar plugin");
         }
 
+    }
+
+    private void validarEndpointsRepetidos() {
+        HashMap<String,String> keys=new HashMap<>();
+        List<ApiGateway> conProblemas= new ArrayList<>();
+        endpoints.forEach(apiGateway -> {
+            String key = apiGateway.api()+"-"+apiGateway.resource()+"-"+apiGateway.metodo();
+            if(keys.get(key)==null){
+                keys.put(key,key);
+            }else {
+                conProblemas.add(apiGateway);
+            }
+        });
+        if(!conProblemas.isEmpty()){
+            throw new InvalidParameterException("\n======================================================================================================\n\nLos siguientes apis no estan bien configuradas o su api+recurso+metodo se repite con otro metodo "+new Gson().toJson(conProblemas));
+        }
     }
 
     protected void cargarResponseTemplate(String apiID, String resourceID, String verbo, File mappingFileResponse,String[] contentTypes) {
