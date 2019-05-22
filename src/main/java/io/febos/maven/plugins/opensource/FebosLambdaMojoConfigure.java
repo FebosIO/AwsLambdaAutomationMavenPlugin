@@ -186,9 +186,11 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                             .withHandler(lambda.handler())
                             .withMemorySize(lambda.ram())
                             .withTimeout(lambda.timeout())
-                            .withLayers(lambda.layers)
                             .withRuntime("java8")
                             .withCode(new FunctionCode().withS3Bucket(bucket).withS3Key(s3path));
+                    if(lambda.layers!= null && lambda.layers.length>0) {
+                        nuevoLambda.withLayers(lambda.layers);
+                    }
                     try {
                         getLog().info("Seteando variables de entorno para el lambda " + lambda.nombre());
                         nuevoLambda.setEnvironment(new Environment());
@@ -278,9 +280,10 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                         .withDescription("[v"+project.getVersion()+"] "+lambda.descripcion())
                         .withHandler(lambda.handler())
                         .withMemorySize(lambda.ram())
-                        .withLayers(lambda.layers)
-                        .withTimeout(lambda.timeout())
                         .withRuntime("java8");
+                if(lambda.layers!= null && lambda.layers.length>0) {
+                    configureLambda.withLayers(lambda.layers);
+                }
 
                 try {
                     getLog().info("Seteando variables de entorno para el lambda");
