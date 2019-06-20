@@ -17,6 +17,7 @@ public class Template {
     private String tmplXml;
     private File templateFile;
     public String handler;
+    public boolean esRequest=true;
 
     public Template(Map<String, String> template, String tmplJson, String tmplXml) {
         this.template = template;
@@ -30,12 +31,32 @@ public class Template {
         this.tmplXml = "{\n";
     }
 
+    public Template(Map<String, String> template, String tmplJson, String tmplXml,boolean esRequest) {
+        this.template = template;
+        this.tmplJson = tmplJson;
+        this.tmplXml = tmplXml;
+        this.esRequest=esRequest;
+    }
+
+    public Template(Map<String, String> template,boolean esRequest) {
+        this.template = template;
+        this.tmplJson = "{\n";
+        this.tmplXml = "{\n";
+        this.esRequest=esRequest;
+    }
+
     public Template(File mappingFile, String tmplJson, String tmplXml) {
         templateFile = mappingFile;
     }
 
     public Template(File mappingFile) {
         templateFile = mappingFile;
+    }
+
+    public Template(File mappingFile,boolean esRequest) {
+        templateFile = mappingFile;
+        this.esRequest=esRequest;
+
     }
 
     public String getTmplJson() {
@@ -64,9 +85,12 @@ public class Template {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        Type type = new TypeToken<Map<String, String>>(){}.getType();
-        Map<String, String> mapa = new Gson().fromJson(jsonTemplate, type);
-        this.handler=mapa.get("functionClass");
+        if(esRequest) {
+            Type type = new TypeToken<Map<String, String>>() {
+            }.getType();
+            Map<String, String> mapa = new Gson().fromJson(jsonTemplate, type);
+            this.handler = mapa.get("functionClass");
+        }
         return this;
     }
 
