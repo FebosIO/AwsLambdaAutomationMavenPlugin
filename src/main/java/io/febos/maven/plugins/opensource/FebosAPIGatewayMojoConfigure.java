@@ -12,6 +12,7 @@ import com.amazonaws.services.apigateway.model.*;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
+import com.google.gson.Gson;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -19,6 +20,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
+import java.security.InvalidParameterException;
 import java.util.*;
 
 /**
@@ -43,13 +45,10 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
     public String accountId;
     @Parameter
     public String region;
-
     @Parameter(name = "deployFilter",property = "deployFilter")
     public String deployFilter;
-
     @Parameter
     public String stageDescriptor;
-
     public CustomCredentialsProvider credenciales;
     public static AmazonS3 s3client;
     public static AWSLambda lambdaClient;
@@ -59,13 +58,14 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
     public HashMap<String, ArrayList<Method>> recursoMetodos;
     public boolean lambdaNuevo;
 
-
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if(this.deployFilter ==null){
             this.deployFilter ="";
         }
-
+        if(endpoints!= null){
+            validarEndpointsRepetidos();
+        }
         apiClient = AmazonApiGatewayClientBuilder.standard().withRegion(region).build();
         lambdaClient = AWSLambdaClientBuilder.standard().withRegion(region).build();
         try{
@@ -77,7 +77,6 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
                 }
                 for (ApiGateway gateway : endpoints) {
                     String[] contentTypes=gateway.contentTypes()==null||gateway.contentTypes().isEmpty()?new String[]{"application/json"}:gateway.contentTypes().split(",");
-
                     configurarApiGateway(gateway.api(),
                             gateway.resource(),
                             gateway.metodo(),
@@ -99,6 +98,22 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
             throw new RuntimeException("Error al ejecutar plugin");
         }
 
+    }
+
+    private void validarEndpointsRepetidos() {
+        HashMap<String,String> keys=new HashMap<>();
+        List<ApiGateway> conProblemas= new ArrayList<>();
+        endpoints.forEach(apiGateway -> {
+            String key = apiGateway.api()+"-"+apiGateway.resource()+"-"+apiGateway.metodo();
+            if(keys.get(key)==null){
+                keys.put(key,key);
+            }else {
+                conProblemas.add(apiGateway);
+            }
+        });
+        if(!conProblemas.isEmpty()){
+            throw new InvalidParameterException("\n======================================================================================================\n\nLos siguientes apis no estan bien configuradas o su api+recurso+metodo se repite con otro metodo "+new Gson().toJson(conProblemas));
+        }
     }
 
     protected void cargarResponseTemplate(String apiID, String resourceID, String verbo, File mappingFileResponse,String[] contentTypes) {
@@ -134,11 +149,14 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
         if (apiID == null || apiID.isEmpty()) {
             return;
         }
+        getLog().info("RECURSO "+apiID+" - "+resourceID+" - "+verbo+"  mappingFile "+(mappingFile != null)+" mappingFileResponse "+(mappingFileResponse!= null));
 
         Template template1 = null;
         if (mappingFile != null) {
+            getLog().info("CARGANDO DESDE ARCHIVO");
             template1 = new Template(mappingFile).invoke();
         } else {
+            getLog().info("CARGANDO DESDE MAP");
             template1 = new Template(template).invoke();
 
         }
@@ -200,7 +218,8 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
             System.out.print("[OK]\n");
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.print("[Ya existia el metodo]\n");
+            getLog().error(e);
+            getLog().info("[Ya existia el metodo]");
         }
 
         try {
@@ -225,8 +244,8 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
             PutMethodResult putMethod = FebosAPIGatewayMojoConfigure.apiClient.putMethod(pmr);
             System.out.print("[OK]\n");
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.print("[Ya existia el metodo]\n");
+            getLog().error(e);
+            getLog().info("[Ya existia el metodo]");
         }
 
         Map<String, String> velocity = new HashMap<>();
@@ -237,6 +256,7 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
         tmplXml = template1.getTmplXml();
 
         for (String contentType : contentTypes) {
+            getLog().info("CONFIGURANDO CONTENT TYPE ["+contentType+"]");
             if(contentType.equals("application/xml")){
                 velocity.put("application/xml", tmplXml);
             }else {
@@ -244,7 +264,7 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
             }
         }
 
-        System.out.print("-> Configurando API para interactuar con el lambda... ");
+        getLog().info("=====>>> Configurando API para interactuar con el lambda   <<<======");
         PutIntegrationRequest pir = new PutIntegrationRequest();
         pir.setIntegrationHttpMethod("POST");
         pir.setHttpMethod(verbo);
@@ -259,7 +279,7 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
         getLog().info(pir.getUri());
         pir.setContentHandling(ContentHandlingStrategy.CONVERT_TO_TEXT);
         PutIntegrationResult putIntegration = FebosAPIGatewayMojoConfigure.apiClient.putIntegration(pir);
-        System.out.print("[OK]\n");
+        getLog().info("[OK]\n");
 
         System.out.print("-> Configurando API para interactuar con el FRONT END... ");
         pir = new PutIntegrationRequest();
@@ -349,9 +369,9 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
         PutIntegrationResponseRequest pirr = new PutIntegrationResponseRequest();
         Map<String, String> params = new HashMap<>();
         Map<String, String> l = new HashMap<>();
-
         if (mappingFileResponse != null && mappingFileResponse.exists()) {
-            Template templateR = new Template(mappingFileResponse).invoke();
+            getLog().info("CARGANDO mappingFileResponse "+mappingFileResponse.getAbsolutePath());
+            Template templateR = new Template(mappingFileResponse,false).invoke();
             Map<String, String> velocityR = new HashMap<>();
 
             //velocityR.put("application/json", templateR.getTmplJson());

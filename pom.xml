@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.febos.development.plugins</groupId>
     <artifactId>aws-configure-maven-plugin</artifactId>
-    <version>1.21</version>
+    <version>1.22</version>
     <packaging>maven-plugin</packaging>
     <name>Febos maven plugin</name>
     <description>Maven plugin to configure and deploy lambdas on AWS</description>
@@ -124,6 +124,11 @@
             <version>2.4.0</version>
         </dependency>-->
 
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>5.1.35</version>
+        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
