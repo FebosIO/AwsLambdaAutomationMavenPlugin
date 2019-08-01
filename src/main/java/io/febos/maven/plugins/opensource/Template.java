@@ -86,10 +86,11 @@ public class Template {
             e.printStackTrace();
         }
         if(esRequest) {
-            Type type = new TypeToken<Map<String, String>>() {
-            }.getType();
-            Map<String, String> mapa = new Gson().fromJson(jsonTemplate, type);
-            this.handler = mapa.get("functionClass");
+            try{
+                Type type = new TypeToken<Map<String, String>>() {}.getType();
+                Map<String, String> mapa = new Gson().fromJson(jsonTemplate, type);
+                this.handler = mapa.get("functionClass");
+            }catch (Exception e){}
         }
         return this;
     }

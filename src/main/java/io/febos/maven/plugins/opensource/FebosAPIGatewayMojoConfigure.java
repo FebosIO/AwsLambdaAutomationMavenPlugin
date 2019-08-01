@@ -160,7 +160,7 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
             template1 = new Template(template).invoke();
 
         }
-        if(!template1.handler.startsWith(this.deployFilter)){
+        if(template1.handler != null && this.deployFilter != null && !template1.handler.startsWith(this.deployFilter)){
             return;
         }
         if(!this.deployFilter.isEmpty()){
