@@ -12,15 +12,19 @@ import com.amazonaws.services.apigateway.AmazonApiGateway;
 import com.amazonaws.services.apigateway.AmazonApiGatewayClientBuilder;
 import com.amazonaws.services.apigateway.model.*;
 import com.amazonaws.services.lambda.AWSLambda;
+import com.amazonaws.services.lambda.AWSLambdaAsync;
+import com.amazonaws.services.lambda.AWSLambdaAsyncClientBuilder;
 import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import com.amazonaws.services.lambda.model.*;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.google.gson.Gson;
+import io.febos.development.plugins.febos.maven.permisos.PermisoPlugin;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
@@ -29,16 +33,20 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 
 /**
  * Maven Plugin para facilitar la configuración de API Gateway y Lambda. Permite
  * configurar el lmabda y api dateway desde el POM del proyecto maven.
+ *
  * @author Michel M. <michel@febos.cl>
  */
-@Mojo(name = "lambda",requiresProject = true,requiresDirectInvocation = true)
+@Mojo(name = "lambda", requiresProject = true, requiresDirectInvocation = true)
 public class FebosLambdaMojoConfigure extends AbstractMojo {
-
     @Parameter(defaultValue = "true")
     boolean update;
     @Parameter
@@ -53,11 +61,11 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
     String accountId;
     @Parameter
     String region;
-
     @Parameter
     String stageDescriptor;
-
-    @Parameter(defaultValue="${project}", readonly=true, required=true)
+    @Parameter(defaultValue = "cl", readonly = true, required = true)
+    public String pais;
+    @Parameter(defaultValue = "${project}", readonly = true, required = true)
     private MavenProject project;
 
     CustomCredentialsProvider credenciales;
@@ -72,9 +80,10 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+
         apiClient = AmazonApiGatewayClientBuilder.standard().withRegion(region).build();
         lambdaClient = AWSLambdaClientBuilder.standard().withRegion(region).build();
-        Map<Integer, List<String>> aliases=new HashMap<>();
+        Map<Integer, List<String>> aliases = new HashMap<>();
         try {
             getLog().info("CONFIGURAMOS ");
             Gson g = new Gson();
@@ -163,6 +172,9 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
             //
 
             if (!functionExists(lambda.nombre())) {
+                try {
+                    new PermisoPlugin().crearCredencialesBd(project.getArtifactId());
+                }catch (Exception e){}
                 lambdaNuevo = true;
                 getLog().info("Creando funcion  lambda " + lambda.nombre());
                 try {
@@ -181,14 +193,14 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
 
                     nuevoLambda
                             .withFunctionName(lambda.nombre())
-                            .withDescription("[v"+project.getVersion()+"] "+lambda.descripcion())
+                            .withDescription("[v" + project.getVersion() + "] " + lambda.descripcion())
                             .withPublish(true)
                             .withHandler(lambda.handler())
                             .withMemorySize(lambda.ram())
                             .withTimeout(lambda.timeout())
                             .withRuntime("java8")
                             .withCode(new FunctionCode().withS3Bucket(bucket).withS3Key(s3path));
-                    if(lambda.layers!= null && lambda.layers.length>0) {
+                    if (lambda.layers != null && lambda.layers.length > 0) {
                         nuevoLambda.withLayers(lambda.layers);
                     }
                     try {
@@ -241,7 +253,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                     getLog().info("--> Creando Alias de versión");
                     lambdaClient.createAlias(new CreateAliasRequest()
                             .withFunctionName(lambda.nombre())
-                            .withName("v"+project.getVersion().replaceAll("\\.","_"))
+                            .withName("v" + project.getVersion().replaceAll("\\.", "_"))
                             .withFunctionVersion("$LATEST")
                     );
                     getLog().info("--> [OK]");
@@ -277,11 +289,11 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
 
                 configureLambda
                         .withFunctionName(lambda.nombre())
-                        .withDescription("[v"+project.getVersion()+"] "+lambda.descripcion())
+                        .withDescription("[v" + project.getVersion() + "] " + lambda.descripcion())
                         .withHandler(lambda.handler())
                         .withMemorySize(lambda.ram())
                         .withRuntime("java8");
-                if(lambda.layers!= null && lambda.layers.length>0) {
+                if (lambda.layers != null && lambda.layers.length > 0) {
                     configureLambda.withLayers(lambda.layers);
                 }
 
@@ -332,7 +344,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
             reqListAlias.setFunctionName(lambda.nombre());
             ListAliasesResult listAliases = lambdaClient.listAliases(reqListAlias);
             for (AliasConfiguration alias : listAliases.getAliases()) {
-                if(alias.getName().startsWith("v")){
+                if (alias.getName().startsWith("v")) {
                     DeleteAliasRequest eliminarAliasReq = new DeleteAliasRequest().withFunctionName(lambda.nombre()).withName(alias.getName());
                     DeleteAliasResult deleteAliasResult = lambdaClient.deleteAlias(eliminarAliasReq);
                 }
@@ -352,7 +364,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
             getLog().info("max version " + maxVersion);
             final int maxVer = maxVersion;
             versiones.entrySet().stream().forEach((v) -> {
-                if ((v.getValue() == null || !v.getValue().matches(lambda.stages.replaceAll(",","|"))) && v.getKey() != maxVer) {
+                if ((v.getValue() == null || !v.getValue().matches(lambda.stages.replaceAll(",", "|"))) && v.getKey() != maxVer) {
                     try {
                         DeleteFunctionRequest delReq = new DeleteFunctionRequest();
                         delReq.setFunctionName(lambda.nombre());
@@ -370,7 +382,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
 
                 }
             });
-            if(!lambdaNuevo){
+            if (!lambdaNuevo) {
                /* lambdaClient.createAlias(new CreateAliasRequest()
                         .withFunctionName(lambda.nombre())
                         .withName("v"+project.getVersion().replaceAll("\\.","_"))
@@ -390,7 +402,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
 
             //TODO: save info to Dynamo lambdas, versions and alias
 
-            if(lambda.warmerHandler!=null && !lambda.warmerHandler.isEmpty()) {
+            if (lambda.warmerHandler != null && !lambda.warmerHandler.isEmpty()) {
 
                 getLog().info("Precalentando Lambda...");
                 AWSLambda cliente = AWSLambdaClientBuilder.standard().withRegion(region).build();
@@ -402,10 +414,10 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                 }
 
                 HashMap<String, String> request = new HashMap<>();
-                request.put("functionClass",lambda.warmerHandler);
-                request.put("requestClass",lambda.warmerRequest);
-                request.put("responseClass",lambda.warmerResponse);
-                request.put("stage",stageName);
+                request.put("functionClass", lambda.warmerHandler);
+                request.put("requestClass", lambda.warmerRequest);
+                request.put("responseClass", lambda.warmerResponse);
+                request.put("stage", stageName);
 
                 String payload = new Gson().toJson(request);
 

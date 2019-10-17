@@ -74,6 +74,7 @@ public class PermisoPlugin extends AbstractMojo {
         } catch (Exception e) {
 
         }
+        getLog().warn("SE CREARA USUARIO DE DB " + project.getArtifactId());
         crearCredencialesBd(project.getArtifactId());
         // There's nothing to do if there are no annotations configured.
         if (annotations == null || annotations.isEmpty()) {
@@ -116,33 +117,43 @@ public class PermisoPlugin extends AbstractMojo {
 
     }
 
-    private void crearCredencialesBd(String nombre) {
+    public void crearCredencialesBd(String nombre) {
         try {
-            if (!nombre.contains("_db_")) {
-                final AWSLambdaAsync cliente = AWSLambdaAsyncClientBuilder.standard().withRegion("us-east-1").build();
-                for (String paisX : pais.split(",")) {
-                    String server= "febosb.c3m0bwpzpiz8.us-east-1.rds.amazonaws.com";
-                    InvokeRequest invokeRequest = new InvokeRequest();
-                    String lambdaCreaUser = "";
-                    if (paisX.equalsIgnoreCase("co")) {
-                        lambdaCreaUser = "io_config_ioco_db_lambda";
-                        server="colombia-cluster.cluster-c3m0bwpzpiz8.us-east-1.rds.amazonaws.com";
-                    }
-                    if (nombre.startsWith("io_")) {
-                        lambdaCreaUser = "io_config_ioco_db_lambda";
-                    }
-                    if (paisX.equalsIgnoreCase("cl")) {
-                        lambdaCreaUser = "io_config_cl_db_lambda";
-                        server="febos-io-chile.cluster-c3m0bwpzpiz8.us-east-1.rds.amazonaws.com";
-                    }
-                    if (nombre.contains("_legacy_")) {
-                        lambdaCreaUser = "io_config_cl_legacy_db_lambda";
-                        server="febosb.c3m0bwpzpiz8.us-east-1.rds.amazonaws.com";
-                    }
+            final AWSLambdaAsync cliente = AWSLambdaAsyncClientBuilder.standard().withRegion("us-east-1").build();
+            String pais = "";
 
-                    getLog().info("Creando usuario en base de datos  " + nombre + ""+paisX+" "+server);
-                    procesar(nombre,server);
+            if (nombre.startsWith("io_")) {
+                pais = "cl,co";
+            }
+            if (nombre.startsWith("cl_")) {
+                pais = "cl";
+            }
+            if (nombre.startsWith("co_")) {
+                pais = "co";
+            }
+            getLog().info("Procesando paices "+pais);
+            for (String paisX : pais.split(",")) {
+                String server = "febosb.c3m0bwpzpiz8.us-east-1.rds.amazonaws.com";
+                InvokeRequest invokeRequest = new InvokeRequest();
+                String lambdaCreaUser = "";
+                if (paisX.equalsIgnoreCase("co")) {
+                    lambdaCreaUser = "io_config_ioco_db_lambda";
+                    server = "colombia-cluster.cluster-c3m0bwpzpiz8.us-east-1.rds.amazonaws.com";
                 }
+                if (nombre.startsWith("io_")) {
+                    lambdaCreaUser = "io_config_ioco_db_lambda";
+                }
+                if (paisX.equalsIgnoreCase("cl")) {
+                    lambdaCreaUser = "io_config_cl_db_lambda";
+                    server = "febos-io-chile.cluster-c3m0bwpzpiz8.us-east-1.rds.amazonaws.com";
+                }
+                if (nombre.contains("_legacy_")) {
+                    lambdaCreaUser = "io_config_cl_legacy_db_lambda";
+                    server = "febosb.c3m0bwpzpiz8.us-east-1.rds.amazonaws.com";
+                }
+
+                getLog().info("Creando usuario en base de datos  " + nombre + "" + paisX + " " + server);
+                procesar(nombre, server);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -156,7 +167,7 @@ public class PermisoPlugin extends AbstractMojo {
         String usuario = generarNombreUsuarioLambda(lambda);
         try (Connection conn = DriverManager.getConnection(url, "superadmin", "ia$olution$**")) {
             conn.setAutoCommit(true);
-            System.out.println("CREATE USER " + usuario+"  "+server);
+            System.out.println("CREATE USER " + usuario + "  " + server);
             String crearUsuario = "CREATE USER '" + usuario + "'@'%' IDENTIFIED BY 'ia$olution$**';";
             Statement st = conn.createStatement();
             st.execute(crearUsuario);
@@ -192,6 +203,7 @@ public class PermisoPlugin extends AbstractMojo {
 
         return usuario;
     }
+
     protected URL[] buildMavenClasspath(List<String> classpathElements) throws MojoExecutionException {
         List<URL> projectClasspathList = new ArrayList<>();
         for (String element : classpathElements) {
