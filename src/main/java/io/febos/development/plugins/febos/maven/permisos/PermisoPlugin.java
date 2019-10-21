@@ -178,7 +178,7 @@ public class PermisoPlugin extends AbstractMojo {
         try (Connection conn = DriverManager.getConnection(url, "superadmin", "ia$olution$**")) {
             conn.setAutoCommit(true);
             System.out.println("GRANT USER " + usuario);
-            String permisos = "GRANT SELECT, INSERT, DELETE, UPDATE ON *.* TO " + usuario + "@'%' IDENTIFIED BY 'ia$olution$**';";
+            String permisos = "GRANT SELECT, INSERT, DELETE, UPDATE ,EXECUTE ON *.* TO " + usuario + "@'%' IDENTIFIED BY 'ia$olution$**';";
             Statement st = conn.createStatement();
             st.execute(permisos);
             st.close();
@@ -191,16 +191,19 @@ public class PermisoPlugin extends AbstractMojo {
 
     }
 
+    public static void main(String[] args) {
+        System.out.println(generarNombreUsuarioLambda("cl_dte_proyecto"));
+        System.out.println(generarNombreUsuarioLambda("dte_proyecto"));
+    }
+
     public static String generarNombreUsuarioLambda(String lambda) {
         String usuario = lambda.replace(lambda.split("_")[0] + "_", "");
         usuario = usuario.replaceAll("a", "").replaceAll("e", "").replaceAll("i", "").replaceAll("o", "").replaceAll("u", "");
-
         try {
             usuario = usuario.substring(0, 15);
-        } catch (Exception var3) {
-            ;
+        } catch (Exception e) {
         }
-
+        ;
         return usuario;
     }
 
