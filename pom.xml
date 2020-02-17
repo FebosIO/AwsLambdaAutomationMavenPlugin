@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.febos.development.plugins</groupId>
     <artifactId>aws-configure-maven-plugin</artifactId>
-    <version>1.23</version>
+    <version>1.31</version>
     <packaging>maven-plugin</packaging>
     <name>Febos maven plugin</name>
     <description>Maven plugin to configure and deploy lambdas on AWS</description>
@@ -15,6 +15,7 @@
         <dependency.locations.enabled>false</dependency.locations.enabled>
         <febos.config.version>1</febos.config.version>
         <aws.version>1.11.475</aws.version>
+
     </properties>
 
     <distributionManagement>

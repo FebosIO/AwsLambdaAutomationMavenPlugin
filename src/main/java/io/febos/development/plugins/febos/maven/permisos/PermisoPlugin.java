@@ -1,5 +1,9 @@
 package io.febos.development.plugins.febos.maven.permisos;
 
+import com.amazonaws.services.lambda.AWSLambdaAsync;
+import com.amazonaws.services.lambda.AWSLambdaAsyncClientBuilder;
+import com.amazonaws.services.lambda.model.InvokeRequest;
+import com.amazonaws.services.lambda.model.InvokeResult;
 import com.google.gson.Gson;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -20,6 +24,7 @@ import java.net.URLClassLoader;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * blah blah blah
  *
@@ -27,7 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @phase package
  * @requiresDependencyResolution compile+runtime
  */
-@Mojo(name = "permisos", requiresProject = true,requiresDirectInvocation = true, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
+@Mojo(name = "permisos", requiresProject = true, requiresDirectInvocation = true, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class PermisoPlugin extends AbstractMojo {
     /**
      * Injected by maven to give us a reference to the project so we can get the
@@ -44,6 +49,7 @@ public class PermisoPlugin extends AbstractMojo {
 
     @Parameter(defaultValue = "${project.compileClasspathElements}", readonly = true, required = true)
     public List<String> projectClasspathElements;
+
     @Parameter(defaultValue = "cl", readonly = true, required = true)
     public String pais;
 
@@ -64,18 +70,19 @@ public class PermisoPlugin extends AbstractMojo {
             getLog().info("ambientes  " + ambientes);
             getLog().info("projectClasspathElements  " + projectClasspathElements);
             getLog().info("annotations " + g.toJson(annotations));
-//            getLog().info("project " + g.toJson(project));
+            getLog().info("project " + project.getArtifactId());
         } catch (Exception e) {
 
         }
+        getLog().warn("SE CREARA USUARIO DE DB " + project.getArtifactId());
+        crearCredencialesBd(project.getArtifactId());
         // There's nothing to do if there are no annotations configured.
         if (annotations == null || annotations.isEmpty()) {
-            annotations=new ArrayList<>();
-            PermisoAnnotation permiso= new PermisoAnnotation();
+            annotations = new ArrayList<>();
+            PermisoAnnotation permiso = new PermisoAnnotation();
             permiso.setName("io.febos.core.validador.Permiso");
             annotations.add(permiso);
         }
-
         int processedCount = 0;
 
         try {
@@ -108,6 +115,96 @@ public class PermisoPlugin extends AbstractMojo {
         }
         getLog().info(String.format("Processed %d annotations", processedCount));
 
+    }
+
+    public void crearCredencialesBd(String nombre) {
+        try {
+            final AWSLambdaAsync cliente = AWSLambdaAsyncClientBuilder.standard().withRegion("us-east-1").build();
+            String pais = "";
+
+            if (nombre.startsWith("io_")) {
+                pais = "cl,co";
+            }
+            if (nombre.startsWith("cl_")) {
+                pais = "cl";
+            }
+            if (nombre.startsWith("co_")) {
+                pais = "co";
+            }
+            getLog().info("Procesando paices "+pais);
+            for (String paisX : pais.split(",")) {
+                String server = "febosb.c3m0bwpzpiz8.us-east-1.rds.amazonaws.com";
+                InvokeRequest invokeRequest = new InvokeRequest();
+                String lambdaCreaUser = "";
+                if (paisX.equalsIgnoreCase("co")) {
+                    lambdaCreaUser = "io_config_ioco_db_lambda";
+                    server = "colombia-cluster.cluster-c3m0bwpzpiz8.us-east-1.rds.amazonaws.com";
+                }
+                if (nombre.startsWith("io_")) {
+                    lambdaCreaUser = "io_config_ioco_db_lambda";
+                }
+                if (paisX.equalsIgnoreCase("cl")) {
+                    lambdaCreaUser = "io_config_cl_db_lambda";
+                    server = "febos-io-chile.cluster-c3m0bwpzpiz8.us-east-1.rds.amazonaws.com";
+                }
+                if (nombre.contains("_legacy_")) {
+                    lambdaCreaUser = "io_config_cl_legacy_db_lambda";
+                    server = "febosb.c3m0bwpzpiz8.us-east-1.rds.amazonaws.com";
+                }
+
+                getLog().info("Creando usuario en base de datos  " + nombre + "" + paisX + " " + server);
+                procesar(nombre, server);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void procesar(String lambda, String server) {
+
+        // Logica del lambda io_config_db_lambda
+        String url = "jdbc:mysql://" + server + ":3306";
+        String usuario = generarNombreUsuarioLambda(lambda);
+        try (Connection conn = DriverManager.getConnection(url, "superadmin", "ia$olution$**")) {
+            conn.setAutoCommit(true);
+            System.out.println("CREATE USER " + usuario + "  " + server);
+            String crearUsuario = "CREATE USER '" + usuario + "'@'%' IDENTIFIED BY 'ia$olution$**';";
+            Statement st = conn.createStatement();
+            st.execute(crearUsuario);
+            st.close();
+        } catch (SQLException ex) {
+
+        }
+        try (Connection conn = DriverManager.getConnection(url, "superadmin", "ia$olution$**")) {
+            conn.setAutoCommit(true);
+            System.out.println("GRANT USER " + usuario);
+            String permisos = "GRANT SELECT, INSERT, DELETE, UPDATE ,EXECUTE ON *.* TO " + usuario + "@'%' IDENTIFIED BY 'ia$olution$**';";
+            Statement st = conn.createStatement();
+            st.execute(permisos);
+            st.close();
+            st = conn.createStatement();
+            st.execute("FLUSH PRIVILEGES;");
+            st.close();
+        } catch (SQLException ex) {
+
+        }
+
+    }
+
+    public static void main(String[] args) {
+        System.out.println(generarNombreUsuarioLambda("cl_dte_proyecto"));
+        System.out.println(generarNombreUsuarioLambda("dte_proyecto"));
+    }
+
+    public static String generarNombreUsuarioLambda(String lambda) {
+        String usuario = lambda.replace(lambda.split("_")[0] + "_", "");
+        usuario = usuario.replaceAll("a", "").replaceAll("e", "").replaceAll("i", "").replaceAll("o", "").replaceAll("u", "");
+        try {
+            usuario = usuario.substring(0, 15);
+        } catch (Exception e) {
+        }
+        ;
+        return usuario;
     }
 
     protected URL[] buildMavenClasspath(List<String> classpathElements) throws MojoExecutionException {
