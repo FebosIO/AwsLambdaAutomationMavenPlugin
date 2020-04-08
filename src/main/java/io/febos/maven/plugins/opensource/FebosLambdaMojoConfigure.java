@@ -371,10 +371,8 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                         delReq.setQualifier(v.getKey().toString());
                         getLog().info("Eliminando version " + v.getKey() + " (no tiene alias)");
                         lambdaClient.deleteFunction(delReq);
-
                     } catch (Exception e) {
                         e.printStackTrace();
-                        throw new RuntimeException("Error al ejecutar plugin");
                     }
                 } else {
                     String alias = v.getValue() == null ? "ultima version" : "alias " + v.getValue();
