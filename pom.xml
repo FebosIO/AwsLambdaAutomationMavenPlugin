@@ -14,7 +14,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <dependency.locations.enabled>false</dependency.locations.enabled>
         <febos.config.version>1</febos.config.version>
-        <aws.version>1.11.476</aws.version>
+        <aws.version>1.11.475</aws.version>
 
     </properties>
 
