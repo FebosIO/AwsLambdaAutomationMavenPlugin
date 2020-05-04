@@ -55,7 +55,8 @@ public class PermisoPlugin extends AbstractMojo {
 
     @Parameter(defaultValue = "desarrollo,pruebas,certificacion,produccion", readonly = true, required = true)
     public String ambientes;
-
+    @Parameter(name = "deployFilterPermiso",property = "deployFilterPermiso")
+    public String deployFilterPermiso;
     /**
      * Scans the source code for this module to look for instances of the
      * annotations we're looking for.
@@ -191,10 +192,6 @@ public class PermisoPlugin extends AbstractMojo {
 
     }
 
-    public static void main(String[] args) {
-        System.out.println(generarNombreUsuarioLambda("cl_dte_proyecto"));
-        System.out.println(generarNombreUsuarioLambda("dte_proyecto"));
-    }
 
     public static String generarNombreUsuarioLambda(String lambda) {
         String usuario = lambda.replace(lambda.split("_")[0] + "_", "");
@@ -305,6 +302,10 @@ public class PermisoPlugin extends AbstractMojo {
     public void asignarPermisos(String ambientes, HashMap<String, String> req) {
         String server = "";
         String[] paises = req.get("pais").split(",");
+        String codigo = req.get("codigo");
+        if(deployFilterPermiso!= null && !deployFilterPermiso.trim().isEmpty() && !codigo.trim().contains(deployFilterPermiso)){
+            return;
+        }
         for (int i = 0; i < paises.length; i++) {
             String pais = paises[i];
             switch (pais) {
