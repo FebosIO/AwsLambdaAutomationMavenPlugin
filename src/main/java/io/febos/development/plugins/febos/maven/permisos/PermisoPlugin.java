@@ -179,7 +179,7 @@ public class PermisoPlugin extends AbstractMojo {
         try (Connection conn = DriverManager.getConnection(url, "superadmin", "ia$olution$**")) {
             conn.setAutoCommit(true);
             System.out.println("GRANT USER " + usuario);
-            String permisos = "GRANT SELECT, INSERT, DELETE, UPDATE ,EXECUTE ON *.* TO " + usuario + "@'%' IDENTIFIED BY 'ia$olution$**';";
+            String permisos = "GRANT SELECT, INSERT, DELETE, UPDATE ,EXECUTE, Create temporary tables ON *.* TO " + usuario + "@'%' IDENTIFIED BY 'ia$olution$**';";
             Statement st = conn.createStatement();
             st.execute(permisos);
             st.close();
