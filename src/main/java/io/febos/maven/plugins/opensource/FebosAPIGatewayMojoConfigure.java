@@ -11,6 +11,7 @@ import com.amazonaws.services.apigateway.AmazonApiGatewayClientBuilder;
 import com.amazonaws.services.apigateway.model.*;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
+import com.amazonaws.services.lambda.model.*;
 import com.amazonaws.services.s3.AmazonS3;
 import com.google.gson.Gson;
 import org.apache.maven.plugin.AbstractMojo;
@@ -66,8 +67,13 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
         if(endpoints!= null){
             validarEndpointsRepetidos();
         }
+        String efsAccessPointId = "fsap-09242212c147bd858";
+        String efsLocalMountPath = "/mnt/vol/";
         apiClient = AmazonApiGatewayClientBuilder.standard().withRegion(region).build();
         lambdaClient = AWSLambdaClientBuilder.standard().withRegion(region).build();
+        FileSystemConfig fileSystemConfig = new FileSystemConfig()
+        .withArn(String.format("arn:aws:elasticfilesystem:%s:%s:access-point/%s", region, accountId, efsAccessPointId))
+        .withLocalMountPath(efsLocalMountPath);
         try{
             if (endpoints != null) {
                 if (lambdaNuevo) {
@@ -89,16 +95,22 @@ public class FebosAPIGatewayMojoConfigure extends AbstractMojo {
                             accountId,
                             contentTypes
                     );
+    
+                    UpdateFunctionConfigurationRequest request = new UpdateFunctionConfigurationRequest()
+                    .withFunctionName(lambda.nombre())
+                    .withFileSystemConfigs(Arrays.asList(fileSystemConfig));
+                    lambdaClient.updateFunctionConfiguration(request);
                 }
             }
-
-
+    
+    
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Error al ejecutar plugin");
         }
-
+    
     }
+    
 
     private void validarEndpointsRepetidos() {
         HashMap<String,String> keys=new HashMap<>();
