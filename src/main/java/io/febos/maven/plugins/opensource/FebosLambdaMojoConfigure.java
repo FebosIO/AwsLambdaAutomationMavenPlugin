@@ -65,6 +65,11 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
     String stageDescriptor;
     @Parameter(defaultValue = "cl", readonly = true, required = true)
     public String pais;
+    @Parameter(
+            name = "ambienteDestino",
+            property = "ambienteDestino"
+    )
+    public String ambienteDestino;
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     private MavenProject project;
 
@@ -431,7 +436,17 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                 InvokeResult invoke = cliente.invoke(invokeRequest);
                 getLog().info(new String(invoke.getPayload().array()));
             }
-
+            if (maxVersion > 0 && this.ambienteDestino != null && !this.ambienteDestino.trim().isEmpty()) {
+                for(String ambiente : this.ambienteDestino.split(",")) {
+                    UpdateAliasRequest updateRequest = new UpdateAliasRequest();
+                    updateRequest.setFunctionName(this.lambda.nombre());
+                    updateRequest.setFunctionVersion(maxVer + "");
+                    updateRequest.setName(ambiente);
+                    checkIfIsInProcessUpdate();
+                    UpdateAliasResult resp = lambdaClient.updateAlias(updateRequest);
+                    this.getLog().info("AMBIENTE ASIGNADO " + maxVer + " " + ambiente);
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Error al ejecutar plugin");
