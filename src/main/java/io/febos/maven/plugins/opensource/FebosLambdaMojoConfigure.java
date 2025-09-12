@@ -174,7 +174,8 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
             if (!functionExists(lambda.nombre())) {
                 try {
                     new PermisoPlugin().crearCredencialesBd(project.getArtifactId());
-                }catch (Exception e){}
+                } catch (Exception e) {
+                }
                 lambdaNuevo = true;
                 getLog().info("Creando funcion  lambda " + lambda.nombre());
                 try {
@@ -228,16 +229,19 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                     CreateFunctionResult createFunction = lambdaClient.createFunction(nuevoLambda);
                     System.out.println(new Gson().toJson(createFunction));
                     getLog().info("--> [OK]");
+                    checkIfIsInProcessUpdate();
                     String[] ambientes = lambda.stages != null ? lambda.stages.split(",") : "".split(",");
                     getLog().info("Creando alias para los distintos ambientes");
                     for (String ambiente : ambientes) {
                         getLog().info("--> Configurando " + ambiente);
+                        checkIfIsInProcessUpdate();
                         CreateAliasResult createAlias = lambdaClient.createAlias(new CreateAliasRequest()
                                 .withFunctionName(lambda.nombre())
                                 .withName(ambiente)
                                 .withFunctionVersion("$LATEST")
                         );
                         System.out.println(createAlias.getName() + " : " + createAlias.getDescription());
+                        checkIfIsInProcessUpdate();
                         lambdaClient.addPermission(new AddPermissionRequest()
                                 .withFunctionName("arn:aws:lambda:"
                                         + region //credenciales.props.getProperty("region")
@@ -251,6 +255,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                     }
                     getLog().info("--> [OK]");
                     getLog().info("--> Creando Alias de versión");
+                    checkIfIsInProcessUpdate();
                     lambdaClient.createAlias(new CreateAliasRequest()
                             .withFunctionName(lambda.nombre())
                             .withName("v" + project.getVersion().replaceAll("\\.", "_"))
@@ -269,7 +274,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                         .withPublish(true)
                         .withS3Bucket(bucket)
                         .withS3Key(s3path);
-
+                checkIfIsInProcessUpdate();
                 lambdaClient.updateFunctionCode(updateLambda);
                 getLog().info("--> [OK]");
                 getLog().info("Actualizando configuracion");
@@ -320,6 +325,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                 if (vpcConfig != null) {
                     configureLambda.withVpcConfig(vpcConfig);
                 }
+                checkIfIsInProcessUpdate();
                 lambdaClient.updateFunctionConfiguration(configureLambda);
                 getLog().info("--> [OK]");
             }
@@ -328,6 +334,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
             getLog().info("Eliminando versiones sin uso");
             ListVersionsByFunctionRequest reqListVersiones = new ListVersionsByFunctionRequest();
             reqListVersiones.setFunctionName(lambda.nombre());
+            checkIfIsInProcessUpdate();
             ListVersionsByFunctionResult listVersionsByFunction = lambdaClient.listVersionsByFunction(reqListVersiones);
             int maxVersion = 0;
             for (FunctionConfiguration conf : listVersionsByFunction.getVersions()) {
@@ -346,6 +353,7 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
             for (AliasConfiguration alias : listAliases.getAliases()) {
                 if (alias.getName().startsWith("v")) {
                     DeleteAliasRequest eliminarAliasReq = new DeleteAliasRequest().withFunctionName(lambda.nombre()).withName(alias.getName());
+                    checkIfIsInProcessUpdate();
                     DeleteAliasResult deleteAliasResult = lambdaClient.deleteAlias(eliminarAliasReq);
                 }
                 /*if(alias.getName().equalsIgnoreCase("v"+project.getVersion().replaceAll("\\.","_"))){
@@ -429,6 +437,33 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
             throw new RuntimeException("Error al ejecutar plugin");
         }
 
+    }
+
+    private void checkIfIsInProcessUpdate() {
+        String lamdaName = lambda.nombre();
+        boolean updating = true;
+        while (updating) {
+            try {
+                Thread.sleep(2000);
+                GetFunctionConfigurationRequest getReq = new GetFunctionConfigurationRequest();
+                getReq.setFunctionName(lamdaName);
+                GetFunctionConfigurationResult configuration = lambdaClient.getFunctionConfiguration(getReq);
+                String status = configuration.getLastUpdateStatus();
+                if (status.equalsIgnoreCase("Successful")) {
+                    updating = false;
+                } else if (status.equalsIgnoreCase("Failed")) {
+                    getLog().error("La función " + lamdaName + " se encuentra en estado de error: " + configuration.getLastUpdateStatusReason());
+                    updating = false;
+                } else {
+                    getLog().info("La función " + lamdaName + " se encuentra en estado: " + status + ", esperando...");
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
+                updating = false;
+            }
+        }
     }
 
 
