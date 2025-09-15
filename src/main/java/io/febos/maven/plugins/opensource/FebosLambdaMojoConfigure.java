@@ -322,22 +322,6 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                     configureLambda.withLayers(lambda.layers);
                 }
                 try {
-                    this.getLog().info("Seteando variables de entorno para el lambda " + this.lambda.nombre());
-
-                    for(Map.Entry<String, String> set : this.lambda.getEnvironments().entrySet()) {
-                        String key = (String)set.getKey();
-                        key = key.replaceAll("\\.", "_");
-                        String value = (String)set.getValue();
-                        this.getLog().info("  -> " + key + " = " + value);
-                        configureLambda.getEnvironment().addVariablesEntry(key, value);
-                    }
-
-                    this.getLog().info("---> [OK]");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-                try {
                     getLog().info("Seteando variables de entorno para el lambda");
                     configureLambda.setEnvironment(new Environment());
 
@@ -349,6 +333,21 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                             getLog().info("  -> " + key + " = " + value);
                             configureLambda.getEnvironment().addVariablesEntry(key, value);
                         }
+                    }
+                    try {
+                        this.getLog().info("Seteando variables de entorno para el lambda " + this.lambda.nombre());
+
+                        for(Map.Entry<String, String> set : this.lambda.getEnvironments().entrySet()) {
+                            String key = (String)set.getKey();
+                            key = key.replaceAll("\\.", "_");
+                            String value = (String)set.getValue();
+                            this.getLog().info("  -> " + key + " = " + value);
+                            configureLambda.getEnvironment().addVariablesEntry(key, value);
+                        }
+
+                        this.getLog().info("---> [OK]");
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                     getLog().info("--> [OK]");
                 } catch (Exception e) {
