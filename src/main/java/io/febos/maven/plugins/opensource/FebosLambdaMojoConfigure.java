@@ -231,6 +231,21 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                     if (vpcConfig != null) {
                         nuevoLambda.withVpcConfig(vpcConfig);
                     }
+                    try {
+                        this.getLog().info("Seteando variables de entorno para el lambda " + this.lambda.nombre());
+
+                        for(Map.Entry<String, String> set : this.lambda.getEnvironments().entrySet()) {
+                            String key = (String)set.getKey();
+                            key = key.replaceAll("\\.", "_");
+                            String value = (String)set.getValue();
+                            this.getLog().info("  -> " + key + " = " + value);
+                            nuevoLambda.getEnvironment().addVariablesEntry(key, value);
+                        }
+
+                        this.getLog().info("---> [OK]");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     CreateFunctionResult createFunction = lambdaClient.createFunction(nuevoLambda);
                     System.out.println(new Gson().toJson(createFunction));
                     getLog().info("--> [OK]");
@@ -305,6 +320,21 @@ public class FebosLambdaMojoConfigure extends AbstractMojo {
                         .withRuntime("java8");
                 if (lambda.layers != null && lambda.layers.length > 0) {
                     configureLambda.withLayers(lambda.layers);
+                }
+                try {
+                    this.getLog().info("Seteando variables de entorno para el lambda " + this.lambda.nombre());
+
+                    for(Map.Entry<String, String> set : this.lambda.getEnvironments().entrySet()) {
+                        String key = (String)set.getKey();
+                        key = key.replaceAll("\\.", "_");
+                        String value = (String)set.getValue();
+                        this.getLog().info("  -> " + key + " = " + value);
+                        configureLambda.getEnvironment().addVariablesEntry(key, value);
+                    }
+
+                    this.getLog().info("---> [OK]");
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
 
                 try {

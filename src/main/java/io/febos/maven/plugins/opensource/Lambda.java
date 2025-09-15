@@ -6,6 +6,9 @@
  */
 package io.febos.maven.plugins.opensource;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  *
  * @author Michel M. <michel@febos.cl>
@@ -25,6 +28,8 @@ public class Lambda {
     public String warmerRequest;
     public String warmerResponse;
     public String[] layers;
+    private Map<String, String> environments = new HashMap();
+
 
     /**
      * Retora el valor de la propiedad ram.
@@ -169,7 +174,12 @@ public class Lambda {
     public void handler(String handler) {
         this.handler = handler;
     }
-    
-    
-   
+
+    public Map<String, String> getEnvironments() {
+        return environments;
+    }
+
+    public void setEnvironments(Map<String, String> environments) {
+        this.environments = environments;
+    }
 }
